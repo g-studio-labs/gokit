@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/RomanshkVolkov/gokit/response"
+	"github.com/g-studio-labs/gokit/response"
 )
 
 // CodeOriginNotAllowed es el código del sobre cuando AntiCSRF rechaza.

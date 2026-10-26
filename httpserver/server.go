@@ -17,7 +17,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 // Options ajusta el servidor. Los ceros toman los defaults de la casa.

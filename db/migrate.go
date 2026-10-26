@@ -8,7 +8,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib" // driver "pgx" de database/sql, para goose
 	"github.com/pressly/goose/v3"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 // Migrate aplica las migraciones goose de migrations (un embed.FS con los

@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 // Options ajusta la conexión. Los ceros toman los defaults.

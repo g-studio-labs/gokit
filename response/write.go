@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 // Write serializa resp con el status dado y pone el requestId del contexto.

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/RomanshkVolkov/gokit/response"
+	"github.com/g-studio-labs/gokit/response"
 )
 
 // RateLimitOptions configura RateLimit.

@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 func TestMain(m *testing.M) {

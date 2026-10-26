@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"net/http"
 
-	"github.com/RomanshkVolkov/gokit/response"
+	"github.com/g-studio-labs/gokit/response"
 )
 
 // NewAPIKey genera una llave "<prefix>_<48 hex>" y su hash. La llave en claro

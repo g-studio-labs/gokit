@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/RomanshkVolkov/gokit/lg"
-	"github.com/RomanshkVolkov/gokit/response"
+	"github.com/g-studio-labs/gokit/lg"
+	"github.com/g-studio-labs/gokit/response"
 )
 
 // Recover atrapa panics, los registra con stack y responde 500 con el sobre.

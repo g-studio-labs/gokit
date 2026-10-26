@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 // SecretsDir es donde Swarm (y k8s con un volumen) monta los secrets.

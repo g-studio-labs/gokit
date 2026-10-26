@@ -6,7 +6,7 @@ configuración, auth y base de datos. Cada paquete se usa por separado; el que
 no importa `db` no compila GORM.
 
 ```sh
-go get github.com/RomanshkVolkov/gokit@latest
+go get github.com/g-studio-labs/gokit@latest
 ```
 
 La skill `go-api` de Claude Code (`~/.claude/skills/go-api`) explica cuándo
@@ -22,12 +22,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/RomanshkVolkov/gokit/banner"
-	"github.com/RomanshkVolkov/gokit/config"
-	"github.com/RomanshkVolkov/gokit/httpserver"
-	"github.com/RomanshkVolkov/gokit/lg"
-	"github.com/RomanshkVolkov/gokit/middleware"
-	"github.com/RomanshkVolkov/gokit/response"
+	"github.com/g-studio-labs/gokit/banner"
+	"github.com/g-studio-labs/gokit/config"
+	"github.com/g-studio-labs/gokit/httpserver"
+	"github.com/g-studio-labs/gokit/lg"
+	"github.com/g-studio-labs/gokit/middleware"
+	"github.com/g-studio-labs/gokit/response"
 )
 
 func main() {

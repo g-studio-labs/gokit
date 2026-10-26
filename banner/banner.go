@@ -20,7 +20,7 @@ import (
 
 // Version y Commit se pueden fijar al compilar:
 //
-//	go build -ldflags "-X github.com/RomanshkVolkov/gokit/banner.Version=1.4.0"
+//	go build -ldflags "-X github.com/g-studio-labs/gokit/banner.Version=1.4.0"
 //
 // Si quedan vacíos se leen de la info de build del módulo (vcs.revision).
 var (

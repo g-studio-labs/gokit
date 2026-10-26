@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 func TestMain(m *testing.M) {

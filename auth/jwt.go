@@ -15,7 +15,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/RomanshkVolkov/gokit/response"
+	"github.com/g-studio-labs/gokit/response"
 )
 
 // MinSecretLen: HS256 con menos de 32 bytes de secreto es fuerza bruta barata.

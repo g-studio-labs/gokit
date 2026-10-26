@@ -1,4 +1,4 @@
-module github.com/RomanshkVolkov/gokit
+module github.com/g-studio-labs/gokit
 
 go 1.26.0
 

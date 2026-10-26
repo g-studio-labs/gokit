@@ -30,7 +30,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 
-	"github.com/RomanshkVolkov/gokit/response"
+	"github.com/g-studio-labs/gokit/response"
 )
 
 // ValidatorOptions ajusta Validator.

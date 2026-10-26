@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 var logs bytes.Buffer

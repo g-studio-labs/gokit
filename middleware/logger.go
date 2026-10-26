@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RomanshkVolkov/gokit/lg"
+	"github.com/g-studio-labs/gokit/lg"
 )
 
 // LoggerOptions ajusta el log de peticiones.
