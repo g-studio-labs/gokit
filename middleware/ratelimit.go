@@ -27,7 +27,7 @@ type RateLimitOptions struct {
 // Redis. Responde 429 con el sobre y Retry-After.
 //
 // Para un bloqueo de login persistente (5 fallos en 15 min por IP) la casa
-// usa una tabla en la base (santa-travel: IntentosRepo); esto es complemento,
+// usa una tabla en la base; esto es complemento,
 // no sustituto.
 func RateLimit(o RateLimitOptions) Middleware {
 	if o.Limit <= 0 {

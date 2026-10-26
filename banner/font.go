@@ -2,8 +2,8 @@
 
 package banner
 
-// glifos es la fuente ANSI Shadow, la misma que usan los banners de eleva,
-// santa-travel y cac. Cada runa tiene 6 filas.
+// glifos es la fuente ANSI Shadow, la de siempre en nuestros banners. Cada
+// runa tiene 6 filas.
 var glifos = map[rune][]string{
 	' ':  {"    ", "    ", "    ", "    ", "    ", "    "},
 	'!':  {"██╗", "██║", "██║", "╚═╝", "██╗", "╚═╝"},

@@ -1,5 +1,5 @@
 // Package config lee la configuración del servicio desde el entorno, con las
-// reglas que ya seguían crm, eleva y santa-travel:
+// reglas que ya seguían nuestros servicios:
 //
 //   - una variable se resuelve como env → NAME_FILE → /run/secrets/NAME, así la
 //     imagen distroless no necesita un entrypoint que exporte los secrets;

@@ -3,7 +3,7 @@
 // [+] con el entorno, la dirección, la versión y lo que cada proyecto quiera
 // añadir. Es solo decoración: los logs estructurados siguen por lg.
 //
-// Es el mismo banner que ya arrancaba eleva, santa-travel y cac, con dos cosas
+// Es el mismo banner que ya arrancaba en varios servicios, con dos cosas
 // que a ninguno le habían puesto: el wordmark se renderiza desde la fuente
 // embebida (no hay que pegar el arte a mano) y la fila version sale sola del
 // binario (debug.ReadBuildInfo) o de -ldflags.

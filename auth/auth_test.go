@@ -120,12 +120,12 @@ func TestPasswords(t *testing.T) {
 	if ok, _ := VerifyPassword("otra", h); ok {
 		t.Error("contraseña incorrecta")
 	}
-	// pbkdf2 de santa-travel: "hola" con 100000 iteraciones.
+	// pbkdf2 heredado: "hola" con 100000 iteraciones.
 	pb := "pbkdf2$sha256$100000$c2FsdHNhbHRzYWx0c2FsdA==$" + pbkdf2Hex("hola", "saltsaltsaltsalt", 100000)
 	if ok, rehash := VerifyPassword("hola", pb); !ok || !rehash {
 		t.Errorf("pbkdf2 compat: ok=%v rehash=%v", ok, rehash)
 	}
-	// bcrypt de crm.
+	// bcrypt heredado.
 	bc := "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5XIXk9m5kGf5kqJvaeBZk5l9N0u0C" // "password"? no importa: solo formato
 	if ok, _ := VerifyPassword("x", bc); ok {
 		t.Error("bcrypt con contraseña incorrecta")

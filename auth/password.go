@@ -42,8 +42,8 @@ func HashPassword(password string) (string, error) {
 // VerifyPassword compara en tiempo constante. Acepta los tres formatos que la
 // casa tiene en producción, para migrar sin forzar un cambio de contraseña:
 //   - $argon2id$... (este paquete)
-//   - pbkdf2$sha256$<iter>$<sal>$<hash> (santa-travel, template Workers)
-//   - $2a$/$2b$ bcrypt (crm)
+//   - pbkdf2$sha256$<iter>$<sal>$<hash> (template de Workers)
+//   - $2a$/$2b$ bcrypt
 //
 // needsRehash es true cuando el hash no es argon2id con los parámetros
 // actuales: tras un login correcto, vuelve a guardar con HashPassword.

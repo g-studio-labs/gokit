@@ -2,8 +2,7 @@
 
 ## v0.1.0 · 2026-10-26
 
-Primera versión. Extrae a un módulo lo que eleva, santa-travel, crm, cac y
-specktank llevaban copiado:
+Primera versión. Extrae a un módulo lo que varios servicios llevaban copiado:
 
 - `banner`: splash ANSI Shadow con wordmark renderizado desde la fuente
   embebida, color de marca por hex, filas `[+]` y versión del binario.

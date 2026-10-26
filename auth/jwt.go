@@ -39,7 +39,7 @@ type Signer struct {
 }
 
 // NewSigner falla si el secreto es corto. issuer identifica al servicio
-// ("eleva-api"): un token de otro servicio con el mismo secreto no vale aquí.
+// ("mi-api"): un token de otro servicio con el mismo secreto no vale aquí.
 func NewSigner(secret []byte, issuer string) (*Signer, error) {
 	if len(secret) < MinSecretLen {
 		return nil, fmt.Errorf("el secreto JWT debe tener al menos %d bytes (openssl rand -base64 48)", MinSecretLen)

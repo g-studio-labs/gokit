@@ -1,7 +1,6 @@
 # gokit
 
-Las piezas comunes de las APIs en Go de la casa (dwit, nuke-ai, guz-studio),
-en un módulo: banner, logger, sobre de respuesta, middlewares, servidor,
+Las piezas comunes de nuestras APIs en Go, en un módulo: banner, logger, sobre de respuesta, middlewares, servidor,
 configuración, auth y base de datos. Cada paquete se usa por separado; el que
 no importa `db` no compila GORM.
 
@@ -9,8 +8,8 @@ no importa `db` no compila GORM.
 go get github.com/g-studio-labs/gokit@latest
 ```
 
-La skill `go-api` de Claude Code (`~/.claude/skills/go-api`) explica cuándo
-usar cada pieza y arma proyectos nuevos con ellas.
+Cada paquete documenta en su cabecera cuándo usarlo; abajo hay un `main.go`
+completo.
 
 ## Un `main.go` completo
 

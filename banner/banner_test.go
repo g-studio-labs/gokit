@@ -6,7 +6,7 @@ import (
 )
 
 func TestWordmarkSeparaLetras(t *testing.T) {
-	rows := Wordmark("CAC")
+	rows := Wordmark("CIC")
 	if len(rows) != 6 {
 		t.Fatalf("filas = %d, quiero 6", len(rows))
 	}

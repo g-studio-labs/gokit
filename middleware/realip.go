@@ -30,7 +30,7 @@ func PrivateRanges() []netip.Prefix {
 }
 
 // RealIP decide la IP del visitante sin dejar que la falsee, con la lógica que
-// santa-travel ya probó detrás de Caddy, Envoy y Cloudflare:
+// ya probamos detrás de Caddy, Envoy y Cloudflare:
 //
 //  1. El par es quien abrió el socket. Si está en trusted (por defecto, las
 //     redes privadas: el API no se publica y solo el proxy llega), el visitante
