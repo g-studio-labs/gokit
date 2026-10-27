@@ -1,10 +1,10 @@
-// Package db abre GORM sobre Postgres con el pool y el logger de la casa, y
-// corre migraciones goose embebidas en el binario.
+// Package db opens GORM over Postgres with the house's pool and logger, and
+// runs goose migrations embedded in the binary.
 //
-// Las migraciones NO corren al arrancar el servidor: van en un subcomando
-// (`api migrate`) que se ejecuta con el rol dueño del esquema antes de
-// cambiar la imagen. El servidor conecta con un rol de mínimos privilegios y
-// nunca usa AutoMigrate fuera de desarrollo.
+// Migrations do NOT run when the server starts: they go in a subcommand
+// (`api migrate`) run with the schema owner role before switching the image.
+// The server connects with a least-privilege role and never uses AutoMigrate
+// outside development.
 package db
 
 import (
@@ -20,19 +20,19 @@ import (
 	"github.com/g-studio-labs/gokit/lg"
 )
 
-// Options ajusta la conexión. Los ceros toman los defaults.
+// Options tunes the connection. Zero values take the defaults.
 type Options struct {
 	MaxOpen         int           // 20
 	MaxIdle         int           // 10
 	ConnMaxIdleTime time.Duration // 5m
 	ConnMaxLifetime time.Duration // 30m
-	SlowThreshold   time.Duration // 200ms: consultas más lentas van a Warn
-	Retries         int           // 10 intentos de ping al arrancar (la base puede tardar)
-	// Debug registra cada consulta (DB_DEBUG=1 en local).
+	SlowThreshold   time.Duration // 200ms: slower queries go to Warn
+	Retries         int           // 10 ping attempts at startup (the database may be slow to come up)
+	// Debug logs every query (DB_DEBUG=1 locally).
 	Debug bool
 }
 
-// Open conecta, configura el pool y hace ping con reintentos.
+// Open connects, configures the pool and pings with retries.
 func Open(ctx context.Context, dsn string, o Options) (*gorm.DB, error) {
 	def := func(n *int, v int) {
 		if *n == 0 {
@@ -57,16 +57,16 @@ func Open(ctx context.Context, dsn string, o Options) (*gorm.DB, error) {
 	}
 	g, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: &slogAdapter{level: level, slow: o.SlowThreshold},
-		// Cada Create/Update no necesita su propia transacción implícita; las
-		// que importan se abren explícitas con db.Transaction.
+		// Each Create/Update does not need its own implicit transaction; the
+		// ones that matter are opened explicitly with db.Transaction.
 		SkipDefaultTransaction: true,
-		// Los errores del driver se traducen a los de gorm (ErrDuplicatedKey...).
+		// Driver errors are translated to gorm's (ErrDuplicatedKey...).
 		TranslateError: true,
-		// Fechas en UTC: lo que sale por JSON no depende del TZ del contenedor.
+		// Dates in UTC: what goes out as JSON does not depend on the container's TZ.
 		NowFunc: func() time.Time { return time.Now().UTC() },
 	})
 	if err != nil {
-		return nil, fmt.Errorf("abrir la base: %w", err)
+		return nil, fmt.Errorf("open database: %w", err)
 	}
 	sqlDB, err := g.DB()
 	if err != nil {
@@ -85,9 +85,9 @@ func Open(ctx context.Context, dsn string, o Options) (*gorm.DB, error) {
 			break
 		}
 		if i >= o.Retries {
-			return nil, fmt.Errorf("la base no responde tras %d intentos: %w", i, err)
+			return nil, fmt.Errorf("database not responding after %d attempts: %w", i, err)
 		}
-		lg.Warn("la base no responde, reintento", "intento", i, lg.Err(err))
+		lg.Warn("database not responding, retrying", "attempt", i, lg.Err(err))
 		select {
 		case <-time.After(2 * time.Second):
 		case <-ctx.Done():
@@ -97,13 +97,13 @@ func Open(ctx context.Context, dsn string, o Options) (*gorm.DB, error) {
 	return g, nil
 }
 
-// NotFound es errors.Is(err, gorm.ErrRecordNotFound).
+// NotFound is errors.Is(err, gorm.ErrRecordNotFound).
 func NotFound(err error) bool { return errors.Is(err, gorm.ErrRecordNotFound) }
 
-// Duplicated es errors.Is(err, gorm.ErrDuplicatedKey) (con TranslateError).
+// Duplicated is errors.Is(err, gorm.ErrDuplicatedKey) (with TranslateError).
 func Duplicated(err error) bool { return errors.Is(err, gorm.ErrDuplicatedKey) }
 
-// slogAdapter manda el log de gorm por lg.
+// slogAdapter sends gorm's log through lg.
 type slogAdapter struct {
 	level gormlogger.LogLevel
 	slow  time.Duration
@@ -144,7 +144,7 @@ func (l *slogAdapter) Trace(ctx context.Context, begin time.Time, fc func() (str
 		lg.Ctx(ctx).Error("sql", lg.Err(err), "ms", elapsed.Milliseconds(), "rows", rows, "query", sql)
 	case l.slow > 0 && elapsed > l.slow && l.level >= gormlogger.Warn:
 		sql, rows := fc()
-		lg.Ctx(ctx).Warn("sql lenta", "ms", elapsed.Milliseconds(), "rows", rows, "query", sql)
+		lg.Ctx(ctx).Warn("slow sql", "ms", elapsed.Milliseconds(), "rows", rows, "query", sql)
 	case l.level >= gormlogger.Info:
 		sql, rows := fc()
 		lg.Ctx(ctx).Debug("sql", "ms", elapsed.Milliseconds(), "rows", rows, "query", sql)

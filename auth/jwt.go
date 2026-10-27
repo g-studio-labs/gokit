@@ -1,8 +1,7 @@
-// Package auth trae lo que la casa ya usa para autenticar, con las decisiones
-// tomadas: JWT HS256 (jwt/v5) siempre validando algoritmo, emisor y
-// expiración; argon2id para contraseñas (aceptando los hashes viejos de
-// pbkdf2 y bcrypt); API keys con prefijo guardadas como SHA-256; cookies de
-// sesión HttpOnly.
+// Package auth bundles what the house already uses for authentication, with
+// the decisions made: JWT HS256 (jwt/v5) always validating algorithm, issuer
+// and expiration; argon2id for passwords (accepting old pbkdf2 and bcrypt
+// hashes); prefixed API keys stored as SHA-256; HttpOnly session cookies.
 package auth
 
 import (
@@ -18,11 +17,11 @@ import (
 	"github.com/g-studio-labs/gokit/response"
 )
 
-// MinSecretLen: HS256 con menos de 32 bytes de secreto es fuerza bruta barata.
+// MinSecretLen: HS256 with a secret under 32 bytes is cheap to brute-force.
 const MinSecretLen = 32
 
-// Claims es el payload estándar de la casa. Un proyecto que necesite más
-// define el suyo embebiendo jwt.RegisteredClaims y usa Sign/Parse genéricos.
+// Claims is the house's standard payload. A project that needs more defines
+// its own embedding jwt.RegisteredClaims and uses the generic Sign/Parse.
 type Claims struct {
 	jwt.RegisteredClaims
 	Role   string   `json:"role,omitempty"`
@@ -32,28 +31,28 @@ type Claims struct {
 	Email  string   `json:"email,omitempty"`
 }
 
-// Signer firma y valida tokens de un emisor con un secreto.
+// Signer signs and validates tokens for one issuer with one secret.
 type Signer struct {
 	secret []byte
 	issuer string
 }
 
-// NewSigner falla si el secreto es corto. issuer identifica al servicio
-// ("mi-api"): un token de otro servicio con el mismo secreto no vale aquí.
+// NewSigner fails if the secret is short. issuer identifies the service
+// ("my-api"): a token from another service with the same secret is not valid here.
 func NewSigner(secret []byte, issuer string) (*Signer, error) {
 	if len(secret) < MinSecretLen {
-		return nil, fmt.Errorf("el secreto JWT debe tener al menos %d bytes (openssl rand -base64 48)", MinSecretLen)
+		return nil, fmt.Errorf("JWT secret must be at least %d bytes (openssl rand -base64 48)", MinSecretLen)
 	}
 	if issuer == "" {
-		return nil, errors.New("el emisor JWT no puede ir vacío")
+		return nil, errors.New("JWT issuer cannot be empty")
 	}
 	return &Signer{secret: secret, issuer: issuer}, nil
 }
 
-// Issuer devuelve el emisor del Signer.
+// Issuer returns the Signer's issuer.
 func (s *Signer) Issuer() string { return s.issuer }
 
-// NewClaims arma los claims registrados con emisor, sujeto, iat y exp.
+// NewClaims builds the registered claims with issuer, subject, iat and exp.
 func (s *Signer) NewClaims(subject string, ttl time.Duration) jwt.RegisteredClaims {
 	now := time.Now()
 	return jwt.RegisteredClaims{
@@ -64,13 +63,13 @@ func (s *Signer) NewClaims(subject string, ttl time.Duration) jwt.RegisteredClai
 	}
 }
 
-// Sign firma claims con HS256.
+// Sign signs claims with HS256.
 func Sign(s *Signer, claims jwt.Claims) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 }
 
-// Parse valida firma, algoritmo, emisor y expiración y devuelve los claims.
-// T es el tipo de claims (auth.Claims o uno propio).
+// Parse validates signature, algorithm, issuer and expiration and returns the claims.
+// T is the claims type (auth.Claims or a custom one).
 func Parse[T any, PT interface {
 	*T
 	jwt.Claims
@@ -90,18 +89,18 @@ func Parse[T any, PT interface {
 
 type claimsKey struct{}
 
-// WithClaims guarda los claims en el contexto (lo hacen los middlewares).
+// WithClaims stores the claims in the context (the middlewares do this).
 func WithClaims(ctx context.Context, c any) context.Context {
 	return context.WithValue(ctx, claimsKey{}, c)
 }
 
-// ClaimsFrom recupera los claims del contexto, o nil si no hay sesión.
+// ClaimsFrom retrieves the claims from the context, or nil if there is no session.
 func ClaimsFrom[T any](ctx context.Context) *T {
 	c, _ := ctx.Value(claimsKey{}).(*T)
 	return c
 }
 
-// BearerToken saca el token de "Authorization: Bearer ...", o "".
+// BearerToken extracts the token from "Authorization: Bearer ...", or "".
 func BearerToken(r *http.Request) string {
 	h := r.Header.Get("Authorization")
 	if len(h) > 7 && strings.EqualFold(h[:7], "bearer ") {
@@ -110,8 +109,8 @@ func BearerToken(r *http.Request) string {
 	return ""
 }
 
-// Bearer exige un JWT válido en Authorization y deja los claims en el
-// contexto. Sin token o inválido responde 401 con el sobre.
+// Bearer requires a valid JWT in Authorization and stores the claims in the
+// context. Missing or invalid token responds 401 with the envelope.
 func Bearer[T any, PT interface {
 	*T
 	jwt.Claims
@@ -119,8 +118,8 @@ func Bearer[T any, PT interface {
 	return tokenMiddleware[T, PT](s, BearerToken)
 }
 
-// Cookie es Bearer pero leyendo el token de una cookie (sesiones de admin
-// en el navegador). Combínalo con middleware.AntiCSRF.
+// Cookie is Bearer but reads the token from a cookie (admin sessions in the
+// browser). Combine it with middleware.AntiCSRF.
 func Cookie[T any, PT interface {
 	*T
 	jwt.Claims
@@ -155,8 +154,8 @@ func tokenMiddleware[T any, PT interface {
 	}
 }
 
-// RequireRole deja pasar solo si el rol de la sesión está en roles. roleOf
-// lee el rol de los claims; para auth.Claims usa RoleOf.
+// RequireRole lets the request through only if the session's role is in roles.
+// roleOf reads the role from the claims; for auth.Claims use RoleOf.
 func RequireRole(roleOf func(ctx context.Context) string, roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +175,7 @@ func RequireRole(roleOf func(ctx context.Context) string, roles ...string) func(
 	}
 }
 
-// RoleOf es el roleOf de RequireRole para auth.Claims.
+// RoleOf is RequireRole's roleOf for auth.Claims.
 func RoleOf(ctx context.Context) string {
 	if c := ClaimsFrom[Claims](ctx); c != nil {
 		return c.Role

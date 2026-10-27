@@ -8,13 +8,13 @@ import (
 	"github.com/g-studio-labs/gokit/lg"
 )
 
-// RequestIDHeader es el header que se lee y se devuelve.
+// RequestIDHeader is the header that is read and returned.
 const RequestIDHeader = "X-Request-ID"
 
-// RequestID respeta el X-Request-ID que mande el proxy o el cliente (si es
-// razonable: hasta 64 caracteres seguros) y si no genera uno. Lo deja en el
-// contexto (lg.RequestID) y en la respuesta, para correlacionar logs con lo
-// que vio el cliente.
+// RequestID honors the X-Request-ID sent by the proxy or the client (if it is
+// reasonable: up to 64 safe characters) and otherwise generates one. It stores
+// it in the context (lg.RequestID) and in the response, to correlate logs with
+// what the client saw.
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get(RequestIDHeader)

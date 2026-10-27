@@ -6,15 +6,15 @@ import (
 	"net/http"
 )
 
-// Error es un error que ya sabe con qué status, código y mensaje llega al
-// cliente. Los services devuelven estos; cualquier otro error se responde como
-// 500 sin exponer el detalle (queda en el log con su causa).
+// Error is an error that already knows the status, code and message it reaches
+// the client with. Services return these; any other error is answered as a
+// 500 without exposing the detail (it stays in the log with its cause).
 type Error struct {
 	Status  int
 	Code    string
 	Message string
 	Fields  []FieldError
-	Err     error // causa interna, solo para el log
+	Err     error // internal cause, for the log only
 }
 
 func (e *Error) Error() string {
@@ -26,14 +26,14 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error { return e.Err }
 
-// Is permite errors.Is(err, response.ErrNotFound): iguales si comparten código.
+// Is enables errors.Is(err, response.ErrNotFound): equal if they share a code.
 func (e *Error) Is(target error) bool {
 	t, ok := target.(*Error)
 	return ok && t.Code == e.Code
 }
 
-// New crea un error con status y código propios. message vacío usa Messages[code]
-// o el texto del status.
+// New creates an error with its own status and code. An empty message uses
+// Messages[code] or the status text.
 func New(status int, code, message string) *Error {
 	if code == "" {
 		code = CodeFor(status)
@@ -48,7 +48,7 @@ func New(status int, code, message string) *Error {
 	return &Error{Status: status, Code: code, Message: message}
 }
 
-// Los constructores aceptan el mensaje para humanos; vacío = el de Messages.
+// The constructors take the human-readable message; empty = the one from Messages.
 func BadRequest(message string) *Error { return New(http.StatusBadRequest, CodeBadRequest, message) }
 func Unauthorized(message string) *Error {
 	return New(http.StatusUnauthorized, CodeUnauthorized, message)
@@ -67,25 +67,25 @@ func Unavailable(message string) *Error {
 	return New(http.StatusServiceUnavailable, CodeUnavailable, message)
 }
 
-// Internal envuelve una falla inesperada. El cliente ve el mensaje genérico;
-// la causa va al log.
+// Internal wraps an unexpected failure. The client sees the generic message;
+// the cause goes to the log.
 func Internal(err error) *Error {
 	e := New(http.StatusInternalServerError, CodeInternal, "")
 	e.Err = err
 	return e
 }
 
-// Validation es un 400 con errores por campo.
+// Validation is a 400 with per-field errors.
 func Validation(fields ...FieldError) *Error {
 	e := New(http.StatusBadRequest, CodeValidation, "")
 	e.Fields = fields
 	return e
 }
 
-// Field es un atajo para construir FieldError en línea.
+// Field is a shortcut to build a FieldError inline.
 func Field(field, message string) FieldError { return FieldError{Field: field, Message: message} }
 
-// Errores centinela, para errors.Is y para devolver sin construir nada.
+// Sentinel errors, for errors.Is and to return without building anything.
 var (
 	ErrBadRequest   = BadRequest("")
 	ErrUnauthorized = Unauthorized("")
@@ -95,7 +95,7 @@ var (
 	ErrInternal     = Internal(nil)
 )
 
-// WithCode devuelve una copia con otro código estable (propio del proyecto).
+// WithCode returns a copy with another stable code (the project's own).
 func (e *Error) WithCode(code string) *Error {
 	c := *e
 	c.Code = code
@@ -105,32 +105,32 @@ func (e *Error) WithCode(code string) *Error {
 	return &c
 }
 
-// WithMessage devuelve una copia con otro mensaje para humanos.
+// WithMessage returns a copy with another human-readable message.
 func (e *Error) WithMessage(message string) *Error {
 	c := *e
 	c.Message = message
 	return &c
 }
 
-// WithFields devuelve una copia con errores por campo.
+// WithFields returns a copy with per-field errors.
 func (e *Error) WithFields(fields ...FieldError) *Error {
 	c := *e
 	c.Fields = append(append([]FieldError(nil), e.Fields...), fields...)
 	return &c
 }
 
-// Wrap devuelve una copia con la causa interna (para el log).
+// Wrap returns a copy with the internal cause (for the log).
 func (e *Error) Wrap(err error) *Error {
 	c := *e
 	c.Err = err
 	return &c
 }
 
-// From convierte cualquier error en *Error para responderlo:
-//   - *Error se devuelve tal cual;
-//   - context.DeadlineExceeded → 504 timeout; context.Canceled → 499 (cliente se fue);
+// From converts any error into an *Error to respond with:
+//   - *Error is returned as is;
+//   - context.DeadlineExceeded → 504 timeout; context.Canceled → 499 (client left);
 //   - *http.MaxBytesError → 413;
-//   - lo demás es un 500 que no filtra el detalle.
+//   - anything else is a 500 that does not leak the detail.
 func From(err error) *Error {
 	if err == nil {
 		return nil

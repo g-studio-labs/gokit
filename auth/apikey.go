@@ -10,10 +10,10 @@ import (
 	"github.com/g-studio-labs/gokit/response"
 )
 
-// NewAPIKey genera una llave "<prefix>_<48 hex>" y su hash. La llave en claro
-// se muestra una sola vez; en la base queda el hash. SHA-256 alcanza (y
-// permite buscar por hash) porque la llave tiene 192 bits de azar; argon2 es
-// para contraseñas elegidas por personas.
+// NewAPIKey generates a "<prefix>_<48 hex>" key and its hash. The plaintext
+// key is shown only once; the database keeps the hash. SHA-256 is enough (and
+// allows lookup by hash) because the key has 192 bits of randomness; argon2 is
+// for passwords chosen by people.
 func NewAPIKey(prefix string) (plain, hash string, err error) {
 	b := make([]byte, 24)
 	if _, err := rand.Read(b); err != nil {
@@ -23,26 +23,26 @@ func NewAPIKey(prefix string) (plain, hash string, err error) {
 	return plain, HashAPIKey(plain), nil
 }
 
-// HashAPIKey devuelve el SHA-256 en hex de la llave.
+// HashAPIKey returns the hex SHA-256 of the key.
 func HashAPIKey(plain string) string {
 	sum := sha256.Sum256([]byte(plain))
 	return hex.EncodeToString(sum[:])
 }
 
-// APIKeyOptions configura RequireAPIKey.
+// APIKeyOptions configures RequireAPIKey.
 type APIKeyOptions struct {
-	// Header donde viene la llave; default X-API-Key.
+	// Header carrying the key; default X-API-Key.
 	Header string
-	// Lookup recibe el hash de la llave y devuelve el valor que se dejará en
-	// el contexto (cuenta, cliente...) y si es válida. Buscar por hash en la
-	// base es un índice normal.
+	// Lookup receives the key's hash and returns the value to store in the
+	// context (account, client...) and whether it is valid. Looking up by hash
+	// in the database is a regular index.
 	Lookup func(ctx context.Context, hash string) (any, bool)
 }
 
 type apiKeyKey struct{}
 
-// RequireAPIKey exige una llave válida y deja lo que devolvió Lookup en el
-// contexto (APIKeyPrincipal). Sin llave o inválida responde 401.
+// RequireAPIKey requires a valid key and stores what Lookup returned in the
+// context (APIKeyPrincipal). Missing or invalid key responds 401.
 func RequireAPIKey(o APIKeyOptions) func(http.Handler) http.Handler {
 	if o.Header == "" {
 		o.Header = "X-API-Key"
@@ -64,7 +64,7 @@ func RequireAPIKey(o APIKeyOptions) func(http.Handler) http.Handler {
 	}
 }
 
-// APIKeyPrincipal devuelve lo que Lookup dejó en el contexto, o nil.
+// APIKeyPrincipal returns what Lookup stored in the context, or nil.
 func APIKeyPrincipal[T any](ctx context.Context) *T {
 	p, _ := ctx.Value(apiKeyKey{}).(*T)
 	return p

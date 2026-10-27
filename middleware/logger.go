@@ -10,22 +10,22 @@ import (
 	"github.com/g-studio-labs/gokit/lg"
 )
 
-// LoggerOptions ajusta el log de peticiones.
+// LoggerOptions tunes the request log.
 type LoggerOptions struct {
-	// Skip decide qué peticiones no se registran. Por defecto, /health, /live
-	// y /ready (los healthchecks no aportan).
+	// Skip decides which requests are not logged. By default, /health, /live
+	// and /ready (healthchecks add nothing).
 	Skip func(r *http.Request) bool
-	// RedactParams son parámetros de query que se tapan en el log. Se suman a
-	// los de siempre: token, key, pass, password, secret, access_token, api_key.
+	// RedactParams are query parameters masked in the log. They add to the
+	// usual ones: token, key, pass, password, secret, access_token, api_key.
 	RedactParams []string
 }
 
 var defaultRedact = []string{"token", "key", "pass", "password", "secret", "access_token", "api_key", "apikey", "hub.verify_token"}
 
-// Logger registra una línea por petición: método, URI (con la query sensible
-// tapada), status, duración e IP. 2xx/3xx a Info, 4xx a Warn, 5xx a Error.
-// Añade X-Response-Time y deja pasar Flush (SSE) y Unwrap
-// (http.ResponseController) al writer real.
+// Logger logs one line per request: method, URI (with the sensitive query
+// masked), status, duration and IP. 2xx/3xx to Info, 4xx to Warn, 5xx to Error.
+// It adds X-Response-Time and passes Flush (SSE) and Unwrap
+// (http.ResponseController) through to the real writer.
 func Logger(o LoggerOptions) Middleware {
 	skip := o.Skip
 	if skip == nil {
@@ -66,8 +66,8 @@ func Logger(o LoggerOptions) Middleware {
 	}
 }
 
-// statusWriter recuerda el status para el log y pone X-Response-Time justo
-// antes de mandar los headers, que es el último momento en que se puede.
+// statusWriter remembers the status for the log and sets X-Response-Time right
+// before sending the headers, which is the last moment it can be done.
 type statusWriter struct {
 	http.ResponseWriter
 	status int
@@ -89,10 +89,10 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-// Unwrap deja que http.ResponseController llegue al writer real.
+// Unwrap lets http.ResponseController reach the real writer.
 func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
-// Flush deja pasar el flush del SSE.
+// Flush passes the SSE flush through.
 func (w *statusWriter) Flush() {
 	if w.status == 0 {
 		w.WriteHeader(http.StatusOK)

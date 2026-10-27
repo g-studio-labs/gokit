@@ -1,6 +1,6 @@
-// Package httpserver arma el http.Server con los timeouts que ningún servicio
-// debería olvidar y lo corre con apagado ordenado por SIGINT/SIGTERM (Swarm y
-// k8s mandan SIGTERM al actualizar).
+// Package httpserver builds the http.Server with the timeouts no service
+// should forget and runs it with graceful shutdown on SIGINT/SIGTERM (Swarm
+// and k8s send SIGTERM on update).
 //
 //	srv := httpserver.New(":8080", router, httpserver.Options{
 //	    BeforeListen: func() { banner.Print(...) },
@@ -20,29 +20,29 @@ import (
 	"github.com/g-studio-labs/gokit/lg"
 )
 
-// Options ajusta el servidor. Los ceros toman los defaults de la casa.
+// Options tunes the server. Zero values take the house defaults.
 type Options struct {
-	ReadHeaderTimeout time.Duration // 10s: corta slowloris
-	ReadTimeout       time.Duration // 15s; súbelo si recibes uploads grandes
-	WriteTimeout      time.Duration // 30s; SSE/streaming lo quitan con http.ResponseController
+	ReadHeaderTimeout time.Duration // 10s: stops slowloris
+	ReadTimeout       time.Duration // 15s; raise it if you receive large uploads
+	WriteTimeout      time.Duration // 30s; SSE/streaming remove it with http.ResponseController
 	IdleTimeout       time.Duration // 60s
-	ShutdownTimeout   time.Duration // 15s para terminar peticiones en curso
+	ShutdownTimeout   time.Duration // 15s to finish in-flight requests
 	MaxHeaderBytes    int           // 1 MiB
 
-	// BeforeListen corre justo antes de escuchar (el banner va aquí).
+	// BeforeListen runs right before listening (the banner goes here).
 	BeforeListen func()
-	// OnShutdown corre tras cerrar el listener, antes de salir (cerrar DB,
-	// parar workers). Recibe el contexto con el plazo de ShutdownTimeout.
+	// OnShutdown runs after closing the listener, before exiting (close DB,
+	// stop workers). It receives the context with the ShutdownTimeout deadline.
 	OnShutdown func(ctx context.Context)
 }
 
-// Server envuelve http.Server con Run.
+// Server wraps http.Server with Run.
 type Server struct {
 	*http.Server
 	opts Options
 }
 
-// New crea el servidor con defaults seguros.
+// New creates the server with safe defaults.
 func New(addr string, h http.Handler, o Options) *Server {
 	def := func(d *time.Duration, v time.Duration) {
 		if *d == 0 {
@@ -65,15 +65,15 @@ func New(addr string, h http.Handler, o Options) *Server {
 		WriteTimeout:      o.WriteTimeout,
 		IdleTimeout:       o.IdleTimeout,
 		MaxHeaderBytes:    o.MaxHeaderBytes,
-		ErrorLog:          nil, // usa slog.Default (lg.Setup lo fija)
+		ErrorLog:          nil, // uses slog.Default (lg.Setup sets it)
 	}
 	tune(srv)
 	return &Server{Server: srv, opts: o}
 }
 
-// Run escucha hasta que llega SIGINT/SIGTERM o ctx se cancela, y entonces
-// termina las peticiones en curso dentro de ShutdownTimeout. Devuelve nil en
-// un apagado limpio.
+// Run listens until SIGINT/SIGTERM arrives or ctx is canceled, and then
+// finishes in-flight requests within ShutdownTimeout. It returns nil on a
+// clean shutdown.
 func (s *Server) Run(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -89,11 +89,11 @@ func (s *Server) Run(ctx context.Context) error {
 	select {
 	case err := <-errs:
 		if !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("escuchar en %s: %w", s.Addr, err)
+			return fmt.Errorf("listen on %s: %w", s.Addr, err)
 		}
 		return nil
 	case <-ctx.Done():
-		lg.Info("cerrando: termino las peticiones en curso", "causa", causeOf(ctx))
+		lg.Info("shutting down: finishing in-flight requests", "cause", causeOf(ctx))
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), s.opts.ShutdownTimeout)
@@ -103,7 +103,7 @@ func (s *Server) Run(ctx context.Context) error {
 		s.opts.OnShutdown(shutdownCtx)
 	}
 	if err != nil {
-		return fmt.Errorf("apagado: %w", err)
+		return fmt.Errorf("shutdown: %w", err)
 	}
 	return nil
 }
@@ -112,12 +112,12 @@ func causeOf(ctx context.Context) string {
 	if c := context.Cause(ctx); c != nil {
 		return c.Error()
 	}
-	return "contexto cancelado"
+	return "context canceled"
 }
 
-// HealthCheck pide GET http://127.0.0.1<addr><path> y falla si no responde 200.
-// Existe para el subcomando `api health`: la imagen distroless no trae curl ni
-// wget, así el HEALTHCHECK de Docker es CMD ["/api", "health"].
+// HealthCheck requests GET http://127.0.0.1<addr><path> and fails if it does not
+// respond 200. It exists for the `api health` subcommand: the distroless image
+// has no curl or wget, so the Docker HEALTHCHECK is CMD ["/api", "health"].
 func HealthCheck(addr, path string, timeout time.Duration) error {
 	if path == "" {
 		path = "/health"
@@ -138,7 +138,7 @@ func HealthCheck(addr, path string, timeout time.Duration) error {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("health respondió %d", res.StatusCode)
+		return fmt.Errorf("health responded %d", res.StatusCode)
 	}
 	return nil
 }

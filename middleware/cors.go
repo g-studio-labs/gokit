@@ -7,20 +7,20 @@ import (
 	"strings"
 )
 
-// CORSOptions configura CORS. Origins es una lista blanca exacta
-// ("https://admin.example.com"); "*" solo se acepta sin credenciales, porque
-// con cookies el navegador lo rechaza y además abriría la sesión a cualquiera.
+// CORSOptions configures CORS. Origins is an exact allowlist
+// ("https://admin.example.com"); "*" is only accepted without credentials,
+// because with cookies the browser rejects it and it would also open the session to anyone.
 type CORSOptions struct {
 	Origins          []string
 	AllowCredentials bool
 	Methods          []string // default GET, POST, PUT, PATCH, DELETE
 	Headers          []string // default Content-Type, Authorization, X-Request-ID
 	ExposeHeaders    []string // default X-Request-ID, X-Response-Time
-	MaxAge           int      // segundos de caché del preflight; default 600
+	MaxAge           int      // preflight cache seconds; default 600
 }
 
-// CORS responde el preflight y pone los headers solo para orígenes de la lista.
-// Sin Origins no hace nada (front same-origin): mejor que un "*" por defecto.
+// CORS answers the preflight and sets the headers only for listed origins.
+// Without Origins it does nothing (same-origin front): better than a default "*".
 func CORS(o CORSOptions) Middleware {
 	if len(o.Methods) == 0 {
 		o.Methods = []string{"GET", "POST", "PUT", "PATCH", "DELETE"}

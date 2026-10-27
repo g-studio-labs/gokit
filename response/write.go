@@ -8,7 +8,7 @@ import (
 	"github.com/g-studio-labs/gokit/lg"
 )
 
-// Write serializa resp con el status dado y pone el requestId del contexto.
+// Write serializes resp with the given status and sets the context's requestId.
 func Write[T any](w http.ResponseWriter, r *http.Request, status int, resp Response[T]) {
 	if resp.RequestID == "" && r != nil {
 		resp.RequestID = lg.RequestID(r.Context())
@@ -19,29 +19,29 @@ func Write[T any](w http.ResponseWriter, r *http.Request, status int, resp Respo
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	if err := enc.Encode(resp); err != nil {
-		lg.Ctx(r.Context()).Error("no se pudo serializar la respuesta", lg.Err(err))
+		lg.Ctx(r.Context()).Error("could not serialize the response", lg.Err(err))
 	}
 }
 
-// OK responde 200 con data. El mensaje es opcional.
+// OK responds 200 with data. The message is optional.
 func OK[T any](w http.ResponseWriter, r *http.Request, data T, message ...string) {
 	Write(w, r, http.StatusOK, Response[T]{Success: true, Data: data, Message: first(message)})
 }
 
-// Created responde 201 con data.
+// Created responds 201 with data.
 func Created[T any](w http.ResponseWriter, r *http.Request, data T, message ...string) {
 	Write(w, r, http.StatusCreated, Response[T]{Success: true, Data: data, Message: first(message)})
 }
 
-// Message responde 200 sin data, solo con un mensaje ("Correo enviado").
+// Message responds 200 without data, only with a message ("Correo enviado").
 func Message(w http.ResponseWriter, r *http.Request, message string) {
 	Write(w, r, http.StatusOK, Response[any]{Success: true, Message: message})
 }
 
-// NoContent responde 204 sin cuerpo.
+// NoContent responds 204 with no body.
 func NoContent(w http.ResponseWriter) { w.WriteHeader(http.StatusNoContent) }
 
-// Paged responde 200 con un listado y su meta. Un slice nil viaja como [].
+// Paged responds 200 with a listing and its meta. A nil slice travels as [].
 func Paged[T any](w http.ResponseWriter, r *http.Request, items []T, meta *Meta) {
 	if items == nil {
 		items = []T{}
@@ -49,9 +49,9 @@ func Paged[T any](w http.ResponseWriter, r *http.Request, items []T, meta *Meta)
 	Write(w, r, http.StatusOK, Response[[]T]{Success: true, Data: items, Meta: meta})
 }
 
-// Fail responde el error con su status y código. Los 5xx se registran con la
-// causa; el cliente solo recibe el mensaje genérico. Los 4xx no se registran
-// aquí (el middleware Logger ya deja la línea del request).
+// Fail responds the error with its status and code. 5xx are logged with the
+// cause; the client only gets the generic message. 4xx are not logged here
+// (the Logger middleware already writes the request line).
 func Fail(w http.ResponseWriter, r *http.Request, err error) {
 	e := From(err)
 	if e == nil {
@@ -65,12 +65,12 @@ func Fail(w http.ResponseWriter, r *http.Request, err error) {
 		if e.Err != nil {
 			attrs = append(attrs, lg.Err(e.Err))
 		}
-		lg.Ctx(ctxOf(r)).Error("error interno", attrs...)
+		lg.Ctx(ctxOf(r)).Error("internal error", attrs...)
 	}
 	Write(w, r, e.Status, Response[any]{Success: false, Message: e.Message, Error: e.Code, Fields: e.Fields})
 }
 
-// Respond cierra el patrón común: err → Fail, si no → OK con data.
+// Respond wraps up the common pattern: err → Fail, otherwise → OK with data.
 func Respond[T any](w http.ResponseWriter, r *http.Request, data T, err error, message ...string) {
 	if err != nil {
 		Fail(w, r, err)
@@ -79,9 +79,9 @@ func Respond[T any](w http.ResponseWriter, r *http.Request, data T, err error, m
 	OK(w, r, data, message...)
 }
 
-// ToolReply es para endpoints que consumen herramientas de agentes (n8n, MCP):
-// siempre 200, y el fallo va dentro del sobre con success:false para que el
-// agente lea qué pasó en vez de recibir un error de red.
+// ToolReply is for endpoints consumed by agent tools (n8n, MCP): always 200,
+// and the failure goes inside the envelope with success:false so the agent
+// reads what happened instead of getting a network error.
 func ToolReply[T any](w http.ResponseWriter, r *http.Request, data T, err error) {
 	if err != nil {
 		e := From(err)
@@ -91,8 +91,8 @@ func ToolReply[T any](w http.ResponseWriter, r *http.Request, data T, err error)
 	Write(w, r, http.StatusOK, Response[T]{Success: true, Data: data})
 }
 
-// HandlerFunc es un handler que devuelve error; H lo convierte en http.Handler
-// respondiendo el error con Fail. Deja los handlers sin ifs de respuesta:
+// HandlerFunc is a handler that returns an error; H turns it into an http.Handler
+// responding the error with Fail. It keeps handlers free of response ifs:
 //
 //	mux.Handle("GET /items/{id}", response.H(func(w http.ResponseWriter, r *http.Request) error {
 //	    id, err := response.PathInt(r, "id")
@@ -104,8 +104,8 @@ func ToolReply[T any](w http.ResponseWriter, r *http.Request, data T, err error)
 //	}))
 type HandlerFunc func(w http.ResponseWriter, r *http.Request) error
 
-// H adapta un HandlerFunc. Un panic dentro se responde como 500 (el
-// middleware Recover hace lo mismo para lo que no pase por aquí).
+// H adapts a HandlerFunc. A panic inside is answered as 500 (the Recover
+// middleware does the same for whatever does not go through here).
 func H(fn HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -113,7 +113,7 @@ func H(fn HandlerFunc) http.HandlerFunc {
 				if rec == http.ErrAbortHandler {
 					panic(rec)
 				}
-				lg.Ctx(r.Context()).Error("panic en handler", "method", r.Method, "path", r.URL.Path, "panic", rec, "stack", string(debug.Stack()))
+				lg.Ctx(r.Context()).Error("panic in handler", "method", r.Method, "path", r.URL.Path, "panic", rec, "stack", string(debug.Stack()))
 				Fail(w, r, Internal(nil))
 			}
 		}()

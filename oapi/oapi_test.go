@@ -27,7 +27,7 @@ openapi: 3.0.3
 info: {title: t, version: "1"}
 components:
   securitySchemes:
-    sesion: {type: apiKey, in: cookie, name: sid}
+    session: {type: apiKey, in: cookie, name: sid}
 paths:
   /login:
     post:
@@ -48,7 +48,7 @@ paths:
   /admin:
     get:
       operationId: admin
-      security: [{sesion: []}]
+      security: [{session: []}]
       parameters:
         - {name: page, in: query, schema: {type: integer, minimum: 1}}
       responses:
@@ -61,12 +61,12 @@ func newHandler(t *testing.T) http.Handler {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// kin-openapi necesita un router; el mux estándar sirve con las rutas
-	// registradas por el middleware (igual que hace oapi-codegen).
+	// kin-openapi needs a router; the standard mux works with the routes
+	// registered through the middleware (same as oapi-codegen does).
 	mux := http.NewServeMux()
 	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })
 	v := Validator(doc, ValidatorOptions{Auth: func(_ context.Context, in *openapi3filter.AuthenticationInput) error {
-		if c, err := in.RequestValidationInput.Request.Cookie("sid"); err == nil && c.Value == "buena" {
+		if c, err := in.RequestValidationInput.Request.Cookie("sid"); err == nil && c.Value == "good" {
 			return nil
 		}
 		return context.Canceled
@@ -76,10 +76,10 @@ func newHandler(t *testing.T) http.Handler {
 	return mux
 }
 
-func TestValidadorCamposSinFiltrarValores(t *testing.T) {
+func TestValidatorFieldsWithoutLeakingValues(t *testing.T) {
 	h := newHandler(t)
 	rec := httptest.NewRecorder()
-	r := httptest.NewRequest("POST", "/login", strings.NewReader(`{"user":"ab","password":"SECRETA","extra":1}`))
+	r := httptest.NewRequest("POST", "/login", strings.NewReader(`{"user":"ab","password":"SECRET7","extra":1}`))
 	r.Header.Set("Content-Type", "application/json")
 	h.ServeHTTP(rec, r)
 	var m map[string]any
@@ -89,44 +89,44 @@ func TestValidadorCamposSinFiltrarValores(t *testing.T) {
 	}
 	fields := m["fields"].([]any)
 	if len(fields) < 3 {
-		t.Errorf("todos los campos a la vez: %v", fields)
+		t.Errorf("all fields at once: %v", fields)
 	}
-	if strings.Contains(rec.Body.String(), "SECRETA") {
-		t.Error("el valor recibido no se devuelve")
+	if strings.Contains(rec.Body.String(), "SECRET7") {
+		t.Error("the received value is not returned")
 	}
 	names := map[string]bool{}
 	for _, f := range fields {
 		names[f.(map[string]any)["field"].(string)] = true
 	}
 	if !names["user"] || !names["password"] || !names["extra"] {
-		t.Errorf("campos: %v", names)
+		t.Errorf("fields: %v", names)
 	}
 }
 
-func TestValidadorSeguridadYParametros(t *testing.T) {
+func TestValidatorSecurityAndParameters(t *testing.T) {
 	h := newHandler(t)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET", "/admin", nil))
 	if rec.Code != 401 || !strings.Contains(rec.Body.String(), `"error":"unauthorized"`) {
-		t.Errorf("sin cookie: %d %s", rec.Code, rec.Body.String())
+		t.Errorf("no cookie: %d %s", rec.Code, rec.Body.String())
 	}
 	r := httptest.NewRequest("GET", "/admin?page=0", nil)
-	r.AddCookie(&http.Cookie{Name: "sid", Value: "buena"})
+	r.AddCookie(&http.Cookie{Name: "sid", Value: "good"})
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Code != 400 || !strings.Contains(rec.Body.String(), `"field":"page"`) {
-		t.Errorf("parámetro: %d %s", rec.Code, rec.Body.String())
+		t.Errorf("parameter: %d %s", rec.Code, rec.Body.String())
 	}
 	r = httptest.NewRequest("GET", "/admin?page=2", nil)
-	r.AddCookie(&http.Cookie{Name: "sid", Value: "buena"})
+	r.AddCookie(&http.Cookie{Name: "sid", Value: "good"})
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Code != 200 {
-		t.Errorf("válido: %d %s", rec.Code, rec.Body.String())
+		t.Errorf("valid: %d %s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestRequestErrorHandlerNombraElParametro(t *testing.T) {
+func TestRequestErrorHandlerNamesTheParameter(t *testing.T) {
 	rec := httptest.NewRecorder()
 	RequestErrorHandler(rec, httptest.NewRequest("GET", "/x", nil), errors.New(`Invalid format for parameter id: error binding string parameter: strconv.ParseInt: parsing "abc": invalid syntax`))
 	if rec.Code != 400 || !strings.Contains(rec.Body.String(), `"field":"id"`) || strings.Contains(rec.Body.String(), "strconv") {

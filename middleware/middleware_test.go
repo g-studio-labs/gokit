@@ -24,7 +24,7 @@ func okHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 }
 
-func TestChainOrden(t *testing.T) {
+func TestChainOrder(t *testing.T) {
 	var order []string
 	mk := func(name string) Middleware {
 		return func(next http.Handler) http.Handler {
@@ -36,7 +36,7 @@ func TestChainOrden(t *testing.T) {
 	}
 	Chain(okHandler(), mk("a"), mk("b"), mk("c")).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
 	if strings.Join(order, "") != "abc" {
-		t.Errorf("orden %v", order)
+		t.Errorf("order %v", order)
 	}
 }
 
@@ -46,18 +46,18 @@ func TestRequestID(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
 	if seen == "" || rec.Header().Get(RequestIDHeader) != seen || len(seen) != 24 {
-		t.Errorf("generado: %q", seen)
+		t.Errorf("generated: %q", seen)
 	}
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set(RequestIDHeader, "abc-123")
 	h.ServeHTTP(httptest.NewRecorder(), r)
 	if seen != "abc-123" {
-		t.Error("respeta el del cliente")
+		t.Error("honors the client's")
 	}
-	r.Header.Set(RequestIDHeader, "con espacios\n")
+	r.Header.Set(RequestIDHeader, "with spaces\n")
 	h.ServeHTTP(httptest.NewRecorder(), r)
-	if seen == "con espacios\n" {
-		t.Error("uno raro se reemplaza")
+	if seen == "with spaces\n" {
+		t.Error("an odd one is replaced")
 	}
 }
 
@@ -65,12 +65,12 @@ func TestRealIP(t *testing.T) {
 	cases := []struct {
 		name, remote, xff, cf, want string
 	}{
-		{"sin proxy", "203.0.113.5:1234", "198.51.100.9", "", "203.0.113.5"},
-		{"proxy privado toma el último XFF", "10.0.0.2:1234", "1.1.1.1, 198.51.100.9", "", "198.51.100.9"},
-		{"XFF falso desde internet se ignora", "203.0.113.5:1234", "10.0.0.1", "", "203.0.113.5"},
-		{"cloudflare tras el proxy", "10.0.0.2:1234", "104.16.1.1", "198.51.100.77", "198.51.100.77"},
-		{"CF-Connecting-IP sin ser cloudflare se ignora", "10.0.0.2:1234", "198.51.100.9", "9.9.9.9", "198.51.100.9"},
-		{"ipv4 mapeada", "[::ffff:203.0.113.5]:1234", "", "", "203.0.113.5"},
+		{"no proxy", "203.0.113.5:1234", "198.51.100.9", "", "203.0.113.5"},
+		{"private proxy takes the last XFF", "10.0.0.2:1234", "1.1.1.1, 198.51.100.9", "", "198.51.100.9"},
+		{"fake XFF from the internet is ignored", "203.0.113.5:1234", "10.0.0.1", "", "203.0.113.5"},
+		{"cloudflare behind the proxy", "10.0.0.2:1234", "104.16.1.1", "198.51.100.77", "198.51.100.77"},
+		{"CF-Connecting-IP not from cloudflare is ignored", "10.0.0.2:1234", "198.51.100.9", "9.9.9.9", "198.51.100.9"},
+		{"mapped ipv4", "[::ffff:203.0.113.5]:1234", "", "", "203.0.113.5"},
 	}
 	for _, c := range cases {
 		var got string
@@ -85,38 +85,38 @@ func TestRealIP(t *testing.T) {
 		}
 		h.ServeHTTP(httptest.NewRecorder(), r)
 		if got != c.want {
-			t.Errorf("%s: %q, quería %q", c.name, got, c.want)
+			t.Errorf("%s: %q, want %q", c.name, got, c.want)
 		}
 	}
 }
 
-func TestLoggerRedactaYNivel(t *testing.T) {
+func TestLoggerRedactsAndLevel(t *testing.T) {
 	logs.Reset()
 	h := Logger(LoggerOptions{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/falla" {
+		if r.URL.Path == "/fail" {
 			w.WriteHeader(500)
 		}
 		w.Write([]byte("x"))
 	}))
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/a?token=SECRETO&q=1", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/a?token=TOPSECRET&q=1", nil))
 	if rec.Header().Get("X-Response-Time") == "" {
 		t.Error("X-Response-Time")
 	}
-	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/falla", nil))
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/fail", nil))
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/health", nil))
 	out := logs.String()
-	if strings.Contains(out, "SECRETO") || !strings.Contains(out, "token=REDACTED") {
-		t.Errorf("redacción: %s", out)
+	if strings.Contains(out, "TOPSECRET") || !strings.Contains(out, "token=REDACTED") {
+		t.Errorf("redaction: %s", out)
 	}
 	if !strings.Contains(out, `"level":"INFO"`) || !strings.Contains(out, `"level":"ERROR"`) {
-		t.Errorf("niveles: %s", out)
+		t.Errorf("levels: %s", out)
 	}
 	if strings.Contains(out, "/health") {
-		t.Error("/health no se registra")
+		t.Error("/health is not logged")
 	}
 	if !strings.Contains(out, `"status":200`) {
-		t.Error("status 200 implícito cuando el handler solo escribe")
+		t.Error("implicit status 200 when the handler only writes")
 	}
 }
 
@@ -129,7 +129,7 @@ func TestRecover(t *testing.T) {
 	}
 	defer func() {
 		if recover() != http.ErrAbortHandler {
-			t.Error("ErrAbortHandler se relanza")
+			t.Error("ErrAbortHandler is re-panicked")
 		}
 	}()
 	Recover(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { panic(http.ErrAbortHandler) })).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
@@ -150,22 +150,22 @@ func TestCORS(t *testing.T) {
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Header().Get("Access-Control-Allow-Origin") != "" {
-		t.Error("origen ajeno no recibe headers")
+		t.Error("foreign origin gets no headers")
 	}
-	// "*" con credenciales no se acepta.
+	// "*" with credentials is not accepted.
 	h = CORS(CORSOptions{Origins: []string{"*"}, AllowCredentials: true})(okHandler())
 	r = httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Origin", "https://any.example.com")
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Header().Get("Access-Control-Allow-Origin") != "" {
-		t.Error("* con credenciales se ignora")
+		t.Error("* with credentials is ignored")
 	}
 	h = CORS(CORSOptions{Origins: []string{"*"}})(okHandler())
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Header().Get("Access-Control-Allow-Origin") != "*" {
-		t.Error("* sin credenciales sí")
+		t.Error("* without credentials is accepted")
 	}
 }
 
@@ -182,10 +182,10 @@ func TestAntiCSRF(t *testing.T) {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, r)
 		if rec.Code != c.code {
-			t.Errorf("%s %q → %d, quería %d", c.method, c.origin, rec.Code, c.code)
+			t.Errorf("%s %q → %d, want %d", c.method, c.origin, rec.Code, c.code)
 		}
 		if c.code == 403 && !strings.Contains(rec.Body.String(), CodeOriginNotAllowed) {
-			t.Error("código del sobre")
+			t.Error("envelope code")
 		}
 	}
 }
@@ -195,7 +195,7 @@ func TestSecurityHeaders(t *testing.T) {
 	SecurityHeaders(HeaderOptions{HSTS: true})(okHandler()).ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
 	for _, k := range []string{"X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy", "Content-Security-Policy", "Strict-Transport-Security"} {
 		if rec.Header().Get(k) == "" {
-			t.Errorf("falta %s", k)
+			t.Errorf("missing %s", k)
 		}
 	}
 }
@@ -205,7 +205,7 @@ func TestMaxBody(t *testing.T) {
 	h := MaxBody(5)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, readErr = io.ReadAll(r.Body) }))
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("POST", "/", strings.NewReader("123456789")))
 	if _, ok := readErr.(*http.MaxBytesError); !ok {
-		t.Errorf("quería MaxBytesError, fue %v", readErr)
+		t.Errorf("want MaxBytesError, got %v", readErr)
 	}
 }
 
@@ -219,7 +219,7 @@ func TestRateLimit(t *testing.T) {
 		h.ServeHTTP(rec, r)
 		codes = append(codes, rec.Code)
 		if rec.Code == 429 && (rec.Header().Get("Retry-After") == "" || !strings.Contains(rec.Body.String(), "rate-limited")) {
-			t.Error("429 con Retry-After y código")
+			t.Error("429 with Retry-After and code")
 		}
 	}
 	if codes[2] != 200 || codes[3] != 429 {
@@ -230,6 +230,6 @@ func TestRateLimit(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Code != 200 {
-		t.Error("otra IP tiene su propia cuenta")
+		t.Error("another IP has its own count")
 	}
 }

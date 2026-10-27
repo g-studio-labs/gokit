@@ -1,20 +1,20 @@
-// Package config lee la configuración del servicio desde el entorno, con las
-// reglas que ya seguían nuestros servicios:
+// Package config reads the service configuration from the environment, with
+// the rules our services already followed:
 //
-//   - una variable se resuelve como env → NAME_FILE → /run/secrets/NAME, así la
-//     imagen distroless no necesita un entrypoint que exporte los secrets;
-//   - una referencia de 1Password sin resolver (op://...) cuenta como faltante,
-//     porque `op run` no la sustituyó;
-//   - .env nunca pisa lo que ya venga del entorno real;
-//   - lo que falta se acumula y se reporta junto, por nombre, nunca por valor.
+//   - a variable resolves as env → NAME_FILE → /run/secrets/NAME, so the
+//     distroless image needs no entrypoint that exports the secrets;
+//   - an unresolved 1Password reference (op://...) counts as missing,
+//     because `op run` did not substitute it;
+//   - .env never overrides what already comes from the real environment;
+//   - whatever is missing is accumulated and reported together, by name, never by value.
 //
-// Uso:
+// Usage:
 //
 //	cfg := struct{ DSN, Port string }{
 //	    DSN:  config.Required("DATABASE_URL"),
 //	    Port: config.Default("PORT", "8080"),
 //	}
-//	config.Must() // sale con la lista de faltantes si hay
+//	config.Must() // exits with the list of missing ones, if any
 package config
 
 import (
@@ -28,7 +28,7 @@ import (
 	"github.com/g-studio-labs/gokit/lg"
 )
 
-// SecretsDir es donde Swarm (y k8s con un volumen) monta los secrets.
+// SecretsDir is where Swarm (and k8s with a volume) mounts the secrets.
 var SecretsDir = "/run/secrets"
 
 var (
@@ -37,8 +37,8 @@ var (
 	invalid []string
 )
 
-// Get devuelve el valor de name (env → NAME_FILE → /run/secrets/name) o "".
-// Una referencia op:// sin resolver se trata como vacío.
+// Get returns the value of name (env → NAME_FILE → /run/secrets/name) or "".
+// An unresolved op:// reference is treated as empty.
 func Get(name string) string {
 	v := os.Getenv(name)
 	if v == "" {
@@ -55,7 +55,7 @@ func Get(name string) string {
 	return strings.TrimSpace(v)
 }
 
-// Required registra name como faltante si no tiene valor. Must() reporta todos.
+// Required records name as missing if it has no value. Must() reports them all.
 func Required(name string) string {
 	v := Get(name)
 	if v == "" {
@@ -66,7 +66,7 @@ func Required(name string) string {
 	return v
 }
 
-// Default devuelve el valor o def si no está.
+// Default returns the value, or def if it is not set.
 func Default(name, def string) string {
 	if v := Get(name); v != "" {
 		return v
@@ -74,7 +74,8 @@ func Default(name, def string) string {
 	return def
 }
 
-// Bool acepta 1/true/yes/on (sin importar mayúsculas); otro valor es false.
+// Bool accepts 1/true/yes/on and 0/false/no/off (case-insensitive). Any other
+// value returns def and is reported as invalid by Must.
 func Bool(name string, def bool) bool {
 	v := Get(name)
 	if v == "" {
@@ -90,7 +91,7 @@ func Bool(name string, def bool) bool {
 	return def
 }
 
-// Int parsea un entero; inválido cuenta para Must().
+// Int parses an integer; an invalid one counts for Must().
 func Int(name string, def int) int {
 	v := Get(name)
 	if v == "" {
@@ -104,7 +105,7 @@ func Int(name string, def int) int {
 	return n
 }
 
-// Duration parsea "15s", "2h"; inválido o <= 0 cuenta para Must().
+// Duration parses "15s", "2h"; invalid or <= 0 counts for Must().
 func Duration(name string, def time.Duration) time.Duration {
 	v := Get(name)
 	if v == "" {
@@ -118,7 +119,7 @@ func Duration(name string, def time.Duration) time.Duration {
 	return d
 }
 
-// List parte una lista separada por comas, sin vacíos ni espacios.
+// List splits a comma-separated list, without empties or spaces.
 func List(name string) []string {
 	var out []string
 	for _, p := range strings.Split(Get(name), ",") {
@@ -129,7 +130,7 @@ func List(name string) []string {
 	return out
 }
 
-// Env devuelve APP_ENV (o GO_ENV, NODE_ENV) con "development" por defecto.
+// Env returns APP_ENV (or GO_ENV, NODE_ENV), "development" by default.
 func Env() string {
 	for _, k := range []string{"APP_ENV", "GO_ENV", "NODE_ENV"} {
 		if v := Get(k); v != "" {
@@ -139,40 +140,40 @@ func Env() string {
 	return "development"
 }
 
-// IsProduction es Env() == "production".
+// IsProduction is Env() == "production".
 func IsProduction() bool { return Env() == "production" }
 
-// Check devuelve los nombres faltantes e inválidos acumulados, o nil.
+// Check returns the accumulated missing and invalid names, or nil.
 func Check() (missingNames, invalidNames []string) {
 	mu.Lock()
 	defer mu.Unlock()
 	return append([]string(nil), missing...), append([]string(nil), invalid...)
 }
 
-// Must termina el proceso si algo requerido falta o no parsea. Lista nombres,
-// nunca valores.
+// Must exits the process if something required is missing or does not parse.
+// It lists names, never values.
 func Must() {
 	m, i := Check()
 	if len(m) == 0 && len(i) == 0 {
 		return
 	}
 	if len(m) > 0 {
-		lg.Error("faltan variables de entorno: " + strings.Join(m, ", "))
+		lg.Error("missing environment variables: " + strings.Join(m, ", "))
 	}
 	if len(i) > 0 {
-		lg.Error("variables de entorno con valor inválido: " + strings.Join(i, ", "))
+		lg.Error("environment variables with invalid value: " + strings.Join(i, ", "))
 	}
 	os.Exit(1)
 }
 
-// Reset olvida lo acumulado (para pruebas).
+// Reset forgets what was accumulated (for tests).
 func Reset() {
 	mu.Lock()
 	missing, invalid = nil, nil
 	mu.Unlock()
 }
 
-// Mask deja ver solo los últimos 4 caracteres: "****abcd".
+// Mask shows only the last 4 characters: "****abcd".
 func Mask(s string) string {
 	if len(s) <= 4 {
 		return strings.Repeat("*", len(s))
@@ -180,9 +181,9 @@ func Mask(s string) string {
 	return strings.Repeat("*", 4) + s[len(s)-4:]
 }
 
-// LoadDotEnv carga los archivos (p. ej. ".env", ".env.local") sin pisar lo que
-// ya exista en el entorno. Un archivo que no existe se ignora. Soporta
-// comentarios, `export KEY=val`, y valores entre comillas simples o dobles.
+// LoadDotEnv loads the files (e.g. ".env", ".env.local") without overriding
+// what already exists in the environment. A missing file is ignored. Supports
+// comments, `export KEY=val`, and single- or double-quoted values.
 func LoadDotEnv(paths ...string) {
 	if len(paths) == 0 {
 		paths = []string{".env"}

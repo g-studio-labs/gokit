@@ -73,7 +73,7 @@ func main() {
 		},
 	})
 	if err := srv.Run(context.Background()); err != nil {
-		lg.Error("servidor", lg.Err(err))
+		lg.Error("server", lg.Err(err))
 		os.Exit(1)
 	}
 }

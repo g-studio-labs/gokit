@@ -8,56 +8,56 @@ import (
 	"testing"
 )
 
-func TestTextoFormatoDeLaCasa(t *testing.T) {
+func TestTextHouseFormat(t *testing.T) {
 	var buf bytes.Buffer
 	Setup(Options{Out: &buf, Format: "text", Level: "debug"})
 	t.Setenv("NO_COLOR", "1")
 	Setup(Options{Out: &buf, Format: "text", Level: "debug"})
-	Info("db lista", "pool", 10, "dsn", "con espacios")
-	Warnf("quedan %d", 3)
-	Debug("detalle")
+	Info("db ready", "pool", 10, "dsn", "with spaces")
+	Warnf("%d left", 3)
+	Debug("detail")
 	out := buf.String()
 	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
 	if len(lines) != 3 {
-		t.Fatalf("una línea por evento, salieron %d:\n%s", len(lines), out)
+		t.Fatalf("one line per event, got %d:\n%s", len(lines), out)
 	}
-	if !strings.Contains(lines[0], "(utc) - [Info]: db lista pool=10 dsn=\"con espacios\"") {
-		t.Errorf("formato inesperado: %q", lines[0])
+	if !strings.Contains(lines[0], "(utc) - [Info]: db ready pool=10 dsn=\"with spaces\"") {
+		t.Errorf("unexpected format: %q", lines[0])
 	}
-	if !strings.Contains(lines[1], "[Warn]: quedan 3") || !strings.Contains(lines[2], "[Debug]: detalle") {
-		t.Errorf("niveles mal: %q %q", lines[1], lines[2])
+	if !strings.Contains(lines[1], "[Warn]: 3 left") || !strings.Contains(lines[2], "[Debug]: detail") {
+		t.Errorf("wrong levels: %q %q", lines[1], lines[2])
 	}
 }
 
-func TestNivelFiltra(t *testing.T) {
+func TestLevelFilters(t *testing.T) {
 	var buf bytes.Buffer
 	Setup(Options{Out: &buf, Format: "text", Level: "warn"})
-	Info("no sale")
-	Warn("sale")
-	if strings.Contains(buf.String(), "no sale") || !strings.Contains(buf.String(), "sale") {
-		t.Errorf("filtro de nivel roto: %q", buf.String())
+	Info("hidden")
+	Warn("shown")
+	if strings.Contains(buf.String(), "hidden") || !strings.Contains(buf.String(), "shown") {
+		t.Errorf("level filter broken: %q", buf.String())
 	}
 }
 
-func TestJSONConRequestID(t *testing.T) {
+func TestJSONWithRequestID(t *testing.T) {
 	var buf bytes.Buffer
 	Setup(Options{Out: &buf, Format: "json", Service: "demo"})
 	ctx := WithRequestID(context.Background(), "abc123")
-	Ctx(ctx).Info("hola", "k", "v")
+	Ctx(ctx).Info("hello", "k", "v")
 	var rec map[string]any
 	if err := json.Unmarshal(buf.Bytes(), &rec); err != nil {
-		t.Fatalf("no es JSON: %v\n%s", err, buf.String())
+		t.Fatalf("not JSON: %v\n%s", err, buf.String())
 	}
-	if rec["request_id"] != "abc123" || rec["service"] != "demo" || rec["k"] != "v" || rec["msg"] != "hola" {
-		t.Errorf("campos: %v", rec)
+	if rec["request_id"] != "abc123" || rec["service"] != "demo" || rec["k"] != "v" || rec["msg"] != "hello" {
+		t.Errorf("fields: %v", rec)
 	}
 }
 
-func TestSecretNoMuestraValor(t *testing.T) {
+func TestSecretHidesValue(t *testing.T) {
 	var buf bytes.Buffer
 	Setup(Options{Out: &buf, Format: "json"})
 	Info("config", Secret("JWT_SECRET"))
 	if !strings.Contains(buf.String(), `"JWT_SECRET":"[redacted]"`) {
-		t.Errorf("Secret debe tapar el valor: %s", buf.String())
+		t.Errorf("Secret must hide the value: %s", buf.String())
 	}
 }

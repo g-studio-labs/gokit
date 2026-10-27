@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestRunApagaConContexto(t *testing.T) {
+func TestRunShutsDownOnContext(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -25,7 +25,7 @@ func TestRunApagaConContexto(t *testing.T) {
 		OnShutdown:   func(context.Context) { shutdownRan = true },
 	})
 	if srv.ReadHeaderTimeout != 10*time.Second || srv.MaxHeaderBytes != 1<<20 {
-		t.Error("defaults no aplicados")
+		t.Error("defaults not applied")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -50,9 +50,9 @@ func TestRunApagaConContexto(t *testing.T) {
 			t.Fatalf("Run: %v", err)
 		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("Run no terminó")
+		t.Fatal("Run did not finish")
 	}
 	if !shutdownRan {
-		t.Error("OnShutdown no corrió")
+		t.Error("OnShutdown did not run")
 	}
 }

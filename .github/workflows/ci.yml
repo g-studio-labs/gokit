@@ -16,8 +16,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
-          # El último parche de cada rama: govulncheck marca la stdlib vieja
-          # (GO-2026-6809 en 1.26.9, corregido en 1.26.10).
+          # Latest patch of each branch: govulncheck flags an old stdlib
+          # (GO-2026-6809 in 1.26.9, fixed in 1.26.10).
           check-latest: true
       - name: gofmt
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)

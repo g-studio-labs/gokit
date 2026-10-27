@@ -1,15 +1,15 @@
-// Package middleware trae los middlewares net/http de la casa, pensados para
-// net/http puro (también sirven en chi). El orden recomendado, del más externo
-// al más interno:
+// Package middleware bundles the house's net/http middlewares, designed for
+// plain net/http (they also work in chi). The recommended order, from
+// outermost to innermost:
 //
 //	h := middleware.Chain(mux,
 //	    middleware.Recover,
 //	    middleware.RequestID,
-//	    middleware.RealIP(),            // solo si hay proxy delante (Caddy, Envoy, CF)
+//	    middleware.RealIP(),            // only if there is a proxy in front (Caddy, Envoy, CF)
 //	    middleware.Logger(middleware.LoggerOptions{}),
 //	    middleware.SecurityHeaders(middleware.HeaderOptions{}),
 //	    middleware.CORS(middleware.CORSOptions{Origins: origins, AllowCredentials: true}),
-//	    middleware.AntiCSRF(origins),   // si la sesión va en cookie
+//	    middleware.AntiCSRF(origins),   // if the session travels in a cookie
 //	    middleware.MaxBody(1<<20),
 //	)
 package middleware
@@ -19,10 +19,10 @@ import (
 	"slices"
 )
 
-// Middleware envuelve un handler.
+// Middleware wraps a handler.
 type Middleware = func(http.Handler) http.Handler
 
-// Chain aplica los middlewares en orden: el primero es el más externo.
+// Chain applies the middlewares in order: the first is the outermost.
 func Chain(h http.Handler, mws ...Middleware) http.Handler {
 	for _, mw := range slices.Backward(mws) {
 		h = mw(h)

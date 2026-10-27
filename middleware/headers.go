@@ -2,20 +2,20 @@ package middleware
 
 import "net/http"
 
-// HeaderOptions ajusta SecurityHeaders.
+// HeaderOptions tunes SecurityHeaders.
 type HeaderOptions struct {
-	// HSTS activa Strict-Transport-Security. Solo si el servicio se sirve
-	// siempre por HTTPS (detrás de Caddy sí). Caddy ya lo pone si se le pide;
-	// repetirlo no estorba.
+	// HSTS enables Strict-Transport-Security. Only if the service is always
+	// served over HTTPS (behind Caddy it is). Caddy already sets it if asked;
+	// repeating it does no harm.
 	HSTS bool
-	// CSP es el Content-Security-Policy. Para un API JSON basta el default
-	// ("default-src 'none'; frame-ancestors 'none'"), que evita que una
-	// respuesta renderizada por error ejecute algo.
+	// CSP is the Content-Security-Policy. For a JSON API the default is enough
+	// ("default-src 'none'; frame-ancestors 'none'"), which keeps a response
+	// rendered by mistake from executing anything.
 	CSP string
 }
 
-// SecurityHeaders pone los headers que un API JSON debe llevar siempre. Va al
-// principio de la cadena para que también cubra errores y 404.
+// SecurityHeaders sets the headers a JSON API must always carry. It goes at
+// the start of the chain so it also covers errors and 404s.
 func SecurityHeaders(o HeaderOptions) Middleware {
 	if o.CSP == "" {
 		o.CSP = "default-src 'none'; frame-ancestors 'none'"

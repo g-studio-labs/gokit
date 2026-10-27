@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.0 · 2026-10-26
+
+Todo el código en inglés: comentarios, godoc, logs, errores internos y tests.
+La API pública no cambia.
+
+- **Logs en inglés** (p. ej. `missing environment variables: …`,
+  `could not serialize the response`, `panic in handler`, `slow sql`).
+- **Atributos de log renombrados:** `intento` → `attempt`, `causa` → `cause`.
+  Revisar dashboards o alertas que filtren por esos campos.
+- **Siguen en español** los textos para el usuario final: `response.Messages`,
+  `response.RuleMessages` y los mensajes que llegan a `message`/`fields[].message`
+  del sobre (validación, `Origen no permitido`, `Petición cancelada`…). Un
+  proyecto los cambia al arrancar.
+- Doc de `config.Bool` corregido: un valor no reconocido devuelve `def` y lo
+  reporta `Must`.
+
 ## v0.1.0 · 2026-10-26
 
 Primera versión. Extrae a un módulo lo que varios servicios llevaban copiado:

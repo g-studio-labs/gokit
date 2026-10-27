@@ -9,26 +9,26 @@ import (
 	"github.com/g-studio-labs/gokit/response"
 )
 
-// RateLimitOptions configura RateLimit.
+// RateLimitOptions configures RateLimit.
 type RateLimitOptions struct {
-	// Limit peticiones por Window y por clave. P. ej. 20 por minuto.
+	// Limit requests per Window and per key. E.g. 20 per minute.
 	Limit  int
 	Window time.Duration
-	// Key agrupa peticiones; por defecto, la IP del cliente (ClientIP). Para un
-	// login, la IP; para un API key, la llave.
+	// Key groups requests; by default, the client IP (ClientIP). For a login,
+	// the IP; for an API key, the key.
 	Key func(r *http.Request) string
-	// Skip exime peticiones (p. ej. las de un API key interno).
+	// Skip exempts requests (e.g. those from an internal API key).
 	Skip func(r *http.Request) bool
 }
 
-// RateLimit es un límite por clave en memoria (token bucket). Sirve para un
-// proceso; con varias réplicas cada una lleva su cuenta, lo cual suele bastar
-// para frenar abuso. Para un límite exacto entre réplicas, usa la base o
-// Redis. Responde 429 con el sobre y Retry-After.
+// RateLimit is an in-memory per-key limit (token bucket). It works for one
+// process; with several replicas each keeps its own count, which is usually
+// enough to curb abuse. For an exact limit across replicas, use the database
+// or Redis. It responds 429 with the envelope and Retry-After.
 //
-// Para un bloqueo de login persistente (5 fallos en 15 min por IP) la casa
-// usa una tabla en la base; esto es complemento,
-// no sustituto.
+// For a persistent login lockout (5 failures in 15 min per IP) the house
+// uses a database table; this is a complement,
+// not a substitute.
 func RateLimit(o RateLimitOptions) Middleware {
 	if o.Limit <= 0 {
 		o.Limit = 60
@@ -69,7 +69,7 @@ type bucket struct {
 
 type limiter struct {
 	mu      sync.Mutex
-	rate    float64 // tokens por segundo
+	rate    float64 // tokens per second
 	burst   float64
 	buckets map[string]*bucket
 	ttl     time.Duration

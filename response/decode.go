@@ -13,19 +13,19 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// MaxBodyBytes es el límite por defecto del cuerpo JSON (1 MiB). Los uploads
-// van por multipart con su propio límite.
+// MaxBodyBytes is the default JSON body limit (1 MiB). Uploads go through
+// multipart with their own limit.
 var MaxBodyBytes int64 = 1 << 20
 
-// Validator es el validador compartido. Regístrale reglas propias al arrancar:
+// Validator is the shared validator. Register custom rules on it at startup:
 //
 //	response.Validator.RegisterValidation("date", func(fl validator.FieldLevel) bool { ... })
 var Validator = newValidator()
 
 func newValidator() *validator.Validate {
 	v := validator.New(validator.WithRequiredStructEnabled())
-	// Los errores se reportan con el nombre JSON del campo, que es el que
-	// conoce el cliente.
+	// Errors are reported with the field's JSON name, which is the one the
+	// client knows.
 	v.RegisterTagNameFunc(func(f reflect.StructField) string {
 		name, _, _ := strings.Cut(f.Tag.Get("json"), ",")
 		if name == "-" {
@@ -39,14 +39,14 @@ func newValidator() *validator.Validate {
 	return v
 }
 
-// Decode lee el cuerpo JSON en T y lo valida con las reglas `validate:"..."`.
-// Es estricto: rechaza campos desconocidos, cuerpos de más de MaxBodyBytes y
-// JSON mal formado, siempre como *Error (400 validation o 413) listo para Fail.
+// Decode reads the JSON body into T and validates it with the `validate:"..."` rules.
+// It is strict: it rejects unknown fields, bodies over MaxBodyBytes and
+// malformed JSON, always as *Error (400 validation or 413) ready for Fail.
 func Decode[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
 	return DecodeLimit[T](w, r, MaxBodyBytes)
 }
 
-// DecodeLimit es Decode con un límite distinto para ese endpoint.
+// DecodeLimit is Decode with a different limit for that endpoint.
 func DecodeLimit[T any](w http.ResponseWriter, r *http.Request, limit int64) (*T, error) {
 	var req T
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
@@ -66,13 +66,13 @@ func DecodeLimit[T any](w http.ResponseWriter, r *http.Request, limit int64) (*T
 	return &req, nil
 }
 
-// Validate corre las reglas `validate` y devuelve un *Error 400 con los
-// campos, o nil.
+// Validate runs the `validate` rules and returns a 400 *Error with the
+// fields, or nil.
 func Validate(v any) error {
 	return ValidateCtx(context.Background(), v)
 }
 
-// ValidateCtx es Validate con contexto (para reglas que consultan algo).
+// ValidateCtx is Validate with a context (for rules that look something up).
 func ValidateCtx(ctx context.Context, v any) error {
 	err := Validator.StructCtx(ctx, v)
 	if err == nil {
@@ -85,9 +85,9 @@ func ValidateCtx(ctx context.Context, v any) error {
 	embedded := embeddedNames(reflect.TypeOf(v))
 	fields := make([]FieldError, 0, len(verrs))
 	for _, fe := range verrs {
-		parts := strings.Split(fe.Namespace(), ".")[1:] // sin el struct raíz
-		// Un struct embebido (CreateReq ⊃ Common) aporta su nombre al
-		// namespace, pero en JSON sus campos están al mismo nivel.
+		parts := strings.Split(fe.Namespace(), ".")[1:] // without the root struct
+		// An embedded struct (CreateReq ⊃ Common) adds its name to the
+		// namespace, but in JSON its fields are at the same level.
 		kept := parts[:0]
 		for _, p := range parts {
 			if !embedded[p] {
@@ -99,8 +99,8 @@ func ValidateCtx(ctx context.Context, v any) error {
 	return Validation(fields...)
 }
 
-// RuleMessages traduce reglas a mensajes; %s es el parámetro de la regla.
-// Un proyecto puede añadir o cambiar entradas al arrancar.
+// RuleMessages maps rules to messages; %s is the rule's parameter.
+// A project can add or change entries at startup.
 var RuleMessages = map[string]string{
 	"required": "es obligatorio",
 	"email":    "debe ser un correo válido",
@@ -121,7 +121,7 @@ var RuleMessages = map[string]string{
 	"alphanum": "solo letras y números",
 }
 
-// RuleMessage devuelve el mensaje de un error de validación.
+// RuleMessage returns the message for a validation error.
 func RuleMessage(fe validator.FieldError) string {
 	if m, ok := RuleMessages[fe.Tag()]; ok {
 		if strings.Contains(m, "%s") {
@@ -132,11 +132,11 @@ func RuleMessage(fe validator.FieldError) string {
 	return "no cumple la regla " + fe.Tag()
 }
 
-// embeddedNames junta los nombres de los structs embebidos, a cualquier
-// profundidad.
+// embeddedNames collects the names of embedded structs, at any
+// depth.
 func embeddedNames(t reflect.Type) map[string]bool {
 	out := map[string]bool{}
-	seen := map[reflect.Type]bool{} // corta tipos recursivos
+	seen := map[reflect.Type]bool{} // stops recursive types
 	var walk func(reflect.Type)
 	walk = func(t reflect.Type) {
 		for t != nil && (t.Kind() == reflect.Pointer || t.Kind() == reflect.Slice || t.Kind() == reflect.Map) {
@@ -171,7 +171,7 @@ func decodeMessage(err error) string {
 	return "cuerpo no válido"
 }
 
-// PathInt lee un {name} de la ruta como entero positivo.
+// PathInt reads a path {name} as a positive integer.
 func PathInt(r *http.Request, name string) (int, error) {
 	n, err := strconv.Atoi(r.PathValue(name))
 	if err != nil || n <= 0 {
@@ -180,7 +180,7 @@ func PathInt(r *http.Request, name string) (int, error) {
 	return n, nil
 }
 
-// PathInt64 es PathInt para int64 (ids grandes).
+// PathInt64 is PathInt for int64 (large ids).
 func PathInt64(r *http.Request, name string) (int64, error) {
 	n, err := strconv.ParseInt(r.PathValue(name), 10, 64)
 	if err != nil || n <= 0 {
@@ -189,7 +189,7 @@ func PathInt64(r *http.Request, name string) (int64, error) {
 	return n, nil
 }
 
-// PathString lee un {name} de la ruta no vacío.
+// PathString reads a non-empty path {name}.
 func PathString(r *http.Request, name string) (string, error) {
 	v := strings.TrimSpace(r.PathValue(name))
 	if v == "" {
@@ -198,7 +198,7 @@ func PathString(r *http.Request, name string) (string, error) {
 	return v, nil
 }
 
-// QueryInt lee ?name= como entero, con default si falta. Inválido es error.
+// QueryInt reads ?name= as an integer, with a default if missing. Invalid is an error.
 func QueryInt(r *http.Request, name string, def int) (int, error) {
 	v := r.URL.Query().Get(name)
 	if v == "" {
@@ -211,24 +211,24 @@ func QueryInt(r *http.Request, name string, def int) (int, error) {
 	return n, nil
 }
 
-// Pagination lee ?page= y ?pageSize= con defaults y tope.
+// Pagination reads ?page= and ?pageSize= with defaults and a cap.
 type Pagination struct {
 	Page, PageSize int
 }
 
-// Offset es lo que se salta en la consulta.
+// Offset is how many rows the query skips.
 func (p Pagination) Offset() int { return (p.Page - 1) * p.PageSize }
 
-// Meta arma el Meta de la respuesta con el total.
+// Meta builds the response Meta with the total.
 func (p Pagination) Meta(total int64) *Meta { return NewMeta(p.Page, p.PageSize, total) }
 
-// DefaultPageSize y MaxPageSize acotan ?pageSize=.
+// DefaultPageSize and MaxPageSize bound ?pageSize=.
 var (
 	DefaultPageSize = 20
 	MaxPageSize     = 100
 )
 
-// Paginate lee page y pageSize de la query (page ≥ 1, 1 ≤ pageSize ≤ MaxPageSize).
+// Paginate reads page and pageSize from the query (page ≥ 1, 1 ≤ pageSize ≤ MaxPageSize).
 func Paginate(r *http.Request) (Pagination, error) {
 	page, err := QueryInt(r, "page", 1)
 	if err != nil {

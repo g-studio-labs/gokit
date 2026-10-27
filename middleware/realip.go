@@ -10,7 +10,7 @@ import (
 
 type ipKey struct{}
 
-// Rangos publicados por Cloudflare (https://www.cloudflare.com/ips), 24-oct-2026.
+// Ranges published by Cloudflare (https://www.cloudflare.com/ips), 2026-10-24.
 var cloudflareRanges = mustPrefixes(
 	"173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
 	"141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
@@ -20,27 +20,27 @@ var cloudflareRanges = mustPrefixes(
 	"2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32",
 )
 
-// CloudflareRanges devuelve los rangos de Cloudflare (copia).
+// CloudflareRanges returns Cloudflare's ranges (a copy).
 func CloudflareRanges() []netip.Prefix { return append([]netip.Prefix(nil), cloudflareRanges...) }
 
-// PrivateRanges son las redes privadas y loopback: donde viven Caddy, Envoy y
-// el resto del stack cuando el API no se publica.
+// PrivateRanges are the private and loopback networks: where Caddy, Envoy and
+// the rest of the stack live when the API is not published.
 func PrivateRanges() []netip.Prefix {
 	return mustPrefixes("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "fc00::/7", "::1/128")
 }
 
-// RealIP decide la IP del visitante sin dejar que la falsee, con la lógica que
-// ya probamos detrás de Caddy, Envoy y Cloudflare:
+// RealIP determines the visitor's IP without letting them spoof it, with the
+// logic we already proved behind Caddy, Envoy and Cloudflare:
 //
-//  1. El par es quien abrió el socket. Si está en trusted (por defecto, las
-//     redes privadas: el API no se publica y solo el proxy llega), el visitante
-//     es el ÚLTIMO X-Forwarded-For: lo que viene antes lo escribió el cliente y
-//     puede ser cualquier cosa. Si el par no es de confianza, X-Forwarded-For
-//     se ignora por completo.
-//  2. Si ese par es Cloudflare, la IP del visitante es CF-Connecting-IP. Si no,
-//     ese header también se ignora.
+//  1. The peer is whoever opened the socket. If it is in trusted (by default,
+//     the private networks: the API is not published and only the proxy reaches
+//     it), the visitor is the LAST X-Forwarded-For: anything before it was written
+//     by the client and can be anything. If the peer is not trusted,
+//     X-Forwarded-For is ignored entirely.
+//  2. If that peer is Cloudflare, the visitor's IP is CF-Connecting-IP. If not,
+//     that header is ignored too.
 //
-// Sin proxy delante no uses este middleware: ClientIP cae al RemoteAddr.
+// Without a proxy in front, do not use this middleware: ClientIP falls back to RemoteAddr.
 func RealIP(trusted ...netip.Prefix) Middleware {
 	if len(trusted) == 0 {
 		trusted = PrivateRanges()
@@ -53,7 +53,7 @@ func RealIP(trusted ...netip.Prefix) Middleware {
 	}
 }
 
-// ClientIP devuelve la IP que dejó RealIP, o el host de RemoteAddr si no se usó.
+// ClientIP returns the IP stored by RealIP, or the RemoteAddr host if it was not used.
 func ClientIP(r *http.Request) string {
 	if ip, ok := r.Context().Value(ipKey{}).(string); ok && ip != "" {
 		return ip

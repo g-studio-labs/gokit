@@ -5,20 +5,20 @@ import (
 	"time"
 )
 
-// CookieOptions ajusta la cookie de sesión al despliegue.
+// CookieOptions adapts the session cookie to the deployment.
 type CookieOptions struct {
-	// Domain: en producción el dominio compartido (".example.com") para que el
-	// admin la mande al API; en local, vacío.
+	// Domain: in production the shared domain (".example.com") so the admin
+	// sends it to the API; locally, empty.
 	Domain string
-	// Secure: false solo en local sin HTTPS.
+	// Secure: false only locally without HTTPS.
 	Secure bool
-	// SameSite: default Lax (la cookie viaja en navegación normal, no en POST
-	// desde otro sitio). Strict si el admin y el API están en el mismo host.
+	// SameSite: default Lax (the cookie travels on normal navigation, not on a
+	// POST from another site). Strict if the admin and the API share a host.
 	SameSite http.SameSite
 	Path     string
 }
 
-// SessionCookie arma una cookie HttpOnly con la sesión (un JWT, normalmente).
+// SessionCookie builds an HttpOnly cookie carrying the session (usually a JWT).
 func SessionCookie(name, value string, ttl time.Duration, o CookieOptions) *http.Cookie {
 	if o.SameSite == 0 {
 		o.SameSite = http.SameSiteLaxMode
@@ -32,7 +32,7 @@ func SessionCookie(name, value string, ttl time.Duration, o CookieOptions) *http
 	}
 }
 
-// ClearCookie es la misma cookie vencida, para el logout.
+// ClearCookie is the same cookie, expired, for logout.
 func ClearCookie(name string, o CookieOptions) *http.Cookie {
 	c := SessionCookie(name, "", 0, o)
 	c.MaxAge = -1

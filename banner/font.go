@@ -2,9 +2,9 @@
 
 package banner
 
-// glifos es la fuente ANSI Shadow, la de siempre en nuestros banners. Cada
-// runa tiene 6 filas.
-var glifos = map[rune][]string{
+// glyphs is the ANSI Shadow font, the one our banners always use. Each rune
+// has 6 rows.
+var glyphs = map[rune][]string{
 	' ':  {"    ", "    ", "    ", "    ", "    ", "    "},
 	'!':  {"██╗", "██║", "██║", "╚═╝", "██╗", "╚═╝"},
 	'"':  {"", "", "", "", "", ""},

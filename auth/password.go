@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Parámetros de argon2id (OWASP 2024: 19 MiB, 2 iteraciones, 1 hilo).
+// argon2id parameters (OWASP 2024: 19 MiB, 2 iterations, 1 thread).
 const (
 	argonTime    = 2
 	argonMemory  = 19 * 1024
@@ -24,11 +24,11 @@ const (
 	saltLen      = 16
 )
 
-// HashPassword devuelve el hash argon2id en formato PHC:
-// $argon2id$v=19$m=19456,t=2,p=1$<sal b64>$<hash b64>.
+// HashPassword returns the argon2id hash in PHC format:
+// $argon2id$v=19$m=19456,t=2,p=1$<salt b64>$<hash b64>.
 func HashPassword(password string) (string, error) {
 	if password == "" {
-		return "", errors.New("contraseña vacía")
+		return "", errors.New("empty password")
 	}
 	salt := make([]byte, saltLen)
 	if _, err := rand.Read(salt); err != nil {
@@ -39,14 +39,14 @@ func HashPassword(password string) (string, error) {
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, argonMemory, argonTime, argonThreads, b64(salt), b64(key)), nil
 }
 
-// VerifyPassword compara en tiempo constante. Acepta los tres formatos que la
-// casa tiene en producción, para migrar sin forzar un cambio de contraseña:
-//   - $argon2id$... (este paquete)
-//   - pbkdf2$sha256$<iter>$<sal>$<hash> (template de Workers)
+// VerifyPassword compares in constant time. It accepts the three formats the
+// house has in production, to migrate without forcing a password change:
+//   - $argon2id$... (this package)
+//   - pbkdf2$sha256$<iter>$<salt>$<hash> (Workers template)
 //   - $2a$/$2b$ bcrypt
 //
-// needsRehash es true cuando el hash no es argon2id con los parámetros
-// actuales: tras un login correcto, vuelve a guardar con HashPassword.
+// needsRehash is true when the hash is not argon2id with the current
+// parameters: after a successful login, store it again with HashPassword.
 func VerifyPassword(password, stored string) (ok, needsRehash bool) {
 	switch {
 	case strings.HasPrefix(stored, "$argon2id$"):
@@ -106,7 +106,7 @@ func verifyPBKDF2(password, stored string) bool {
 	return subtle.ConstantTimeCompare(got, want) == 1
 }
 
-// ConstantTimeEqual compara dos textos sin revelar por tiempo cuánto coinciden.
+// ConstantTimeEqual compares two strings without leaking via timing how much they match.
 func ConstantTimeEqual(a, b string) bool {
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }

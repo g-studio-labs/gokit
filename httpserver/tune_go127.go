@@ -4,7 +4,7 @@ package httpserver
 
 import "net/http"
 
-// Go 1.27 añadió MaxHeaderValueCount: cuántos valores acepta por header
-// (defensa contra cabeceras repetidas a lo loco). Se fija aquí para que el
-// módulo siga compilando con 1.26.
+// Go 1.27 added MaxHeaderValueCount: how many values it accepts per header
+// (defense against wildly repeated headers). It is set here so the module
+// still builds with 1.26.
 func tune(s *http.Server) { s.MaxHeaderValueCount = 100 }

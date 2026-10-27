@@ -28,12 +28,12 @@ func body(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
 	t.Helper()
 	var m map[string]any
 	if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
-		t.Fatalf("no es JSON: %v\n%s", err, rec.Body.String())
+		t.Fatalf("not JSON: %v\n%s", err, rec.Body.String())
 	}
 	return m
 }
 
-func TestOKConRequestID(t *testing.T) {
+func TestOKWithRequestID(t *testing.T) {
 	rec := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/x", nil)
 	r = r.WithContext(lg.WithRequestID(r.Context(), "req-1"))
@@ -46,15 +46,15 @@ func TestOKConRequestID(t *testing.T) {
 		t.Error("content-type")
 	}
 	if _, has := m["error"]; has {
-		t.Error("error no debe aparecer en éxito")
+		t.Error("error must not appear on success")
 	}
 }
 
-func TestPagedListaVaciaEsArray(t *testing.T) {
+func TestPagedEmptyListIsArray(t *testing.T) {
 	rec := httptest.NewRecorder()
 	Paged[item](rec, httptest.NewRequest("GET", "/x", nil), nil, NewMeta(1, 20, 0))
 	if !strings.Contains(rec.Body.String(), `"data":[]`) {
-		t.Errorf("lista vacía debe ser []: %s", rec.Body.String())
+		t.Errorf("empty list must be []: %s", rec.Body.String())
 	}
 	m := body(t, rec)
 	meta := m["meta"].(map[string]any)
@@ -66,7 +66,7 @@ func TestPagedListaVaciaEsArray(t *testing.T) {
 	}
 }
 
-func TestFailMapeaErrores(t *testing.T) {
+func TestFailMapsErrors(t *testing.T) {
 	cases := []struct {
 		err    error
 		status int
@@ -86,29 +86,29 @@ func TestFailMapeaErrores(t *testing.T) {
 		Fail(rec, httptest.NewRequest("POST", "/x", nil), c.err)
 		m := body(t, rec)
 		if rec.Code != c.status || m["error"] != c.code || m["success"] != false {
-			t.Errorf("%v → %d %v, quería %d %s", c.err, rec.Code, m, c.status, c.code)
+			t.Errorf("%v → %d %v, want %d %s", c.err, rec.Code, m, c.status, c.code)
 		}
 		if c.status >= 500 && strings.Contains(rec.Body.String(), "boom") {
-			t.Error("un 500 no filtra la causa")
+			t.Error("a 500 does not leak the cause")
 		}
 	}
 }
 
-func TestErrorsIsPorCodigo(t *testing.T) {
+func TestErrorsIsByCode(t *testing.T) {
 	err := NotFound("promo").Wrap(errors.New("gorm: not found"))
 	if !errors.Is(err, ErrNotFound) {
-		t.Error("errors.Is por código")
+		t.Error("errors.Is by code")
 	}
 	var e *Error
 	if !errors.As(err, &e) || e.Err == nil {
-		t.Error("errors.As conserva la causa")
+		t.Error("errors.As keeps the cause")
 	}
 	if ErrNotFound.Message != Messages[CodeNotFound] {
-		t.Error("los centinela no se deben mutar")
+		t.Error("sentinels must not be mutated")
 	}
 }
 
-func TestDecodeEstricto(t *testing.T) {
+func TestDecodeStrict(t *testing.T) {
 	type req struct {
 		Email string `json:"email" validate:"required,email"`
 		Age   int    `json:"age" validate:"gte=18"`
@@ -119,7 +119,7 @@ func TestDecodeEstricto(t *testing.T) {
 		return Decode[req](rec, r)
 	}
 	if _, err := run(`{"email":"no","age":10}`); err == nil {
-		t.Fatal("debe fallar")
+		t.Fatal("must fail")
 	} else {
 		e := From(err)
 		if e.Status != 400 || e.Code != CodeValidation || len(e.Fields) != 2 {
@@ -130,25 +130,25 @@ func TestDecodeEstricto(t *testing.T) {
 		}
 	}
 	if _, err := run(`{"email":"a@b.co","age":20,"extra":1}`); err == nil || !strings.Contains(From(err).Fields[0].Message, "desconocido") {
-		t.Errorf("campos desconocidos se rechazan: %v", err)
+		t.Errorf("unknown fields are rejected: %v", err)
 	}
 	if _, err := run(`{bad`); err == nil || From(err).Fields[0].Message != "JSON mal formado" {
-		t.Errorf("json malo: %v", err)
+		t.Errorf("bad json: %v", err)
 	}
 	if _, err := run(``); err == nil {
-		t.Error("vacío falla")
+		t.Error("empty fails")
 	}
 	if v, err := run(`{"email":"a@b.co","age":20}`); err != nil || v.Email != "a@b.co" {
-		t.Errorf("válido: %v %v", v, err)
+		t.Errorf("valid: %v %v", v, err)
 	}
 	rec := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "/x", strings.NewReader(`{"email":"`+strings.Repeat("x", 100)+`"}`))
 	if _, err := DecodeLimit[req](rec, r, 10); err == nil || From(err).Status != 413 {
-		t.Errorf("413 por tamaño: %v", err)
+		t.Errorf("413 by size: %v", err)
 	}
 }
 
-func TestDecodeStructEmbebido(t *testing.T) {
+func TestDecodeEmbeddedStruct(t *testing.T) {
 	type common struct {
 		Name string `json:"name" validate:"required"`
 	}
@@ -188,7 +188,7 @@ func TestHandlerH(t *testing.T) {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest("GET", c.path, nil))
 		if rec.Code != c.code {
-			t.Errorf("%s → %d, quería %d", c.path, rec.Code, c.code)
+			t.Errorf("%s → %d, want %d", c.path, rec.Code, c.code)
 		}
 	}
 }
@@ -199,14 +199,14 @@ func TestPaginate(t *testing.T) {
 		t.Errorf("%v %v", p, err)
 	}
 	if _, err := Paginate(httptest.NewRequest("GET", "/x?pageSize=1000", nil)); err == nil {
-		t.Error("tope de pageSize")
+		t.Error("pageSize cap")
 	}
 	if p, _ := Paginate(httptest.NewRequest("GET", "/x", nil)); p.Page != 1 || p.PageSize != DefaultPageSize {
 		t.Error("defaults")
 	}
 }
 
-func TestToolReplySiempre200(t *testing.T) {
+func TestToolReplyAlways200(t *testing.T) {
 	rec := httptest.NewRecorder()
 	ToolReply[any](rec, httptest.NewRequest("POST", "/tool", nil), nil, NotFound("no hay lead"))
 	m := body(t, rec)

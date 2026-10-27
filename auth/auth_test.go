@@ -22,9 +22,9 @@ func TestMain(m *testing.M) {
 
 var secret = []byte(strings.Repeat("s", 32))
 
-func TestSignerRechazaSecretoCorto(t *testing.T) {
-	if _, err := NewSigner([]byte("corto"), "x"); err == nil {
-		t.Error("secreto corto")
+func TestSignerRejectsShortSecret(t *testing.T) {
+	if _, err := NewSigner([]byte("short"), "x"); err == nil {
+		t.Error("short secret")
 	}
 }
 
@@ -38,24 +38,24 @@ func TestSignParse(t *testing.T) {
 	if err != nil || c.Subject != "u1" || c.Role != "admin" || c.Issuer != "demo-api" {
 		t.Fatalf("%v %+v", err, c)
 	}
-	// Otro emisor con el mismo secreto no vale.
-	other, _ := NewSigner(secret, "otro")
+	// Another issuer with the same secret is not valid.
+	other, _ := NewSigner(secret, "other")
 	if _, err := Parse[Claims](other, tok); err == nil {
-		t.Error("emisor distinto")
+		t.Error("different issuer")
 	}
-	// Sin exp no vale.
+	// No exp is not valid.
 	noExp, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{Issuer: "demo-api"}).SignedString(secret)
 	if _, err := Parse[Claims](s, noExp); err == nil {
-		t.Error("exp obligatorio")
+		t.Error("exp required")
 	}
-	// alg=none no vale.
+	// alg=none is not valid.
 	none, _ := jwt.NewWithClaims(jwt.SigningMethodNone, jwt.RegisteredClaims{Issuer: "demo-api", ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))}).SignedString(jwt.UnsafeAllowNoneSignatureType)
 	if _, err := Parse[Claims](s, none); err == nil {
 		t.Error("alg none")
 	}
 }
 
-func TestBearerYRoles(t *testing.T) {
+func TestBearerAndRoles(t *testing.T) {
 	s, _ := NewSigner(secret, "demo-api")
 	tok, _ := Sign(s, Claims{RegisteredClaims: s.NewClaims("u1", time.Hour), Role: "member"})
 	var seen *Claims
@@ -69,10 +69,10 @@ func TestBearerYRoles(t *testing.T) {
 		auth string
 		code int
 	}{
-		{"sin token", h, "", 401},
-		{"token malo", h, "Bearer x.y.z", 401},
+		{"no token", h, "", 401},
+		{"bad token", h, "Bearer x.y.z", 401},
 		{"ok", h, "Bearer " + tok, 200},
-		{"rol insuficiente", admin, "Bearer " + tok, 403},
+		{"insufficient role", admin, "Bearer " + tok, 403},
 	} {
 		r := httptest.NewRequest("GET", "/", nil)
 		if c.auth != "" {
@@ -81,11 +81,11 @@ func TestBearerYRoles(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c.h.ServeHTTP(rec, r)
 		if rec.Code != c.code {
-			t.Errorf("%s: %d, quería %d (%s)", c.name, rec.Code, c.code, rec.Body.String())
+			t.Errorf("%s: %d, want %d (%s)", c.name, rec.Code, c.code, rec.Body.String())
 		}
 	}
 	if seen == nil || seen.Subject != "u1" {
-		t.Error("claims en el contexto")
+		t.Error("claims in context")
 	}
 }
 
@@ -98,7 +98,7 @@ func TestCookieMiddleware(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Code != 200 {
-		t.Errorf("cookie válida: %d", rec.Code)
+		t.Errorf("valid cookie: %d", rec.Code)
 	}
 	c := SessionCookie("sid", "v", time.Hour, CookieOptions{Domain: ".example.com"})
 	if !c.HttpOnly || c.SameSite != http.SameSiteLaxMode || c.Path != "/" || c.MaxAge != 3600 {
@@ -110,28 +110,28 @@ func TestCookieMiddleware(t *testing.T) {
 }
 
 func TestPasswords(t *testing.T) {
-	h, err := HashPassword("correcta-123")
+	h, err := HashPassword("correct-123")
 	if err != nil || !strings.HasPrefix(h, "$argon2id$v=19$m=19456,t=2,p=1$") {
 		t.Fatalf("%v %s", err, h)
 	}
-	if ok, rehash := VerifyPassword("correcta-123", h); !ok || rehash {
-		t.Error("argon2id actual")
+	if ok, rehash := VerifyPassword("correct-123", h); !ok || rehash {
+		t.Error("current argon2id")
 	}
-	if ok, _ := VerifyPassword("otra", h); ok {
-		t.Error("contraseña incorrecta")
+	if ok, _ := VerifyPassword("other", h); ok {
+		t.Error("wrong password")
 	}
-	// pbkdf2 heredado: "hola" con 100000 iteraciones.
-	pb := "pbkdf2$sha256$100000$c2FsdHNhbHRzYWx0c2FsdA==$" + pbkdf2Hex("hola", "saltsaltsaltsalt", 100000)
-	if ok, rehash := VerifyPassword("hola", pb); !ok || !rehash {
+	// Legacy pbkdf2: "hello" with 100000 iterations.
+	pb := "pbkdf2$sha256$100000$c2FsdHNhbHRzYWx0c2FsdA==$" + pbkdf2Hex("hello", "saltsaltsaltsalt", 100000)
+	if ok, rehash := VerifyPassword("hello", pb); !ok || !rehash {
 		t.Errorf("pbkdf2 compat: ok=%v rehash=%v", ok, rehash)
 	}
-	// bcrypt heredado.
-	bc := "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5XIXk9m5kGf5kqJvaeBZk5l9N0u0C" // "password"? no importa: solo formato
+	// Legacy bcrypt.
+	bc := "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5XIXk9m5kGf5kqJvaeBZk5l9N0u0C" // "password"? doesn't matter: format only
 	if ok, _ := VerifyPassword("x", bc); ok {
-		t.Error("bcrypt con contraseña incorrecta")
+		t.Error("bcrypt with wrong password")
 	}
-	if ok, _ := VerifyPassword("x", "basura"); ok {
-		t.Error("formato desconocido nunca coincide")
+	if ok, _ := VerifyPassword("x", "garbage"); ok {
+		t.Error("unknown format never matches")
 	}
 }
 
@@ -155,10 +155,10 @@ func TestAPIKey(t *testing.T) {
 	if rec.Code != 200 || seen == nil || seen.ID != "acc1" {
 		t.Errorf("%d %v", rec.Code, seen)
 	}
-	r.Header.Set("X-API-Key", "nk_mala")
+	r.Header.Set("X-API-Key", "nk_bad")
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, r)
 	if rec.Code != 401 {
-		t.Error("llave mala")
+		t.Error("bad key")
 	}
 }

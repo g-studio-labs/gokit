@@ -11,10 +11,10 @@ import (
 	"time"
 )
 
-// textHandler reproduce el formato que todos los servicios de la casa ya
-// imprimen: `2006-01-02 15:04:05 (utc) - [Info]: mensaje key=val`, con fecha y
-// nivel del color del nivel y el mensaje del color de siempre. Siempre en UTC
-// (varias copias decían "(utc)" sin serlo) y una sola línea por evento.
+// textHandler reproduces the format every house service already prints:
+// `2006-01-02 15:04:05 (utc) - [Info]: message key=val`, with date and level
+// in the level's color and the message in the usual color. Always in UTC
+// (several copies said "(utc)" without being so) and a single line per event.
 type textHandler struct {
 	mu    *sync.Mutex
 	out   io.Writer

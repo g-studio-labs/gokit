@@ -1,31 +1,31 @@
-// Package response es el sobre JSON de la casa y todo lo que hace falta para
-// responder con él: errores tipados que ya saben su status y su código,
-// escritores, decodificación estricta del cuerpo y validación por campo.
+// Package response is the house JSON envelope and everything needed to
+// respond with it: typed errors that already know their status and code,
+// writers, strict body decoding and per-field validation.
 //
-// Toda respuesta tiene esta forma:
+// Every response has this shape:
 //
 //	{
 //	  "success": true,
-//	  "message": "Creado",                  // opcional, para humanos
-//	  "data": {...},                        // lo que pidió el cliente
-//	  "error": "not-found",                 // solo en fallos: código estable
+//	  "message": "Creado",                  // optional, for humans
+//	  "data": {...},                        // what the client asked for
+//	  "error": "not-found",                 // failures only: stable code
 //	  "fields": [{"field":"email","message":"es obligatorio","rule":"required"}],
 //	  "meta": {"page":1,"pageSize":20,"total":57,"totalPages":3},
-//	  "requestId": "4f2c..."                // el X-Request-ID de la petición
+//	  "requestId": "4f2c..."                // the request's X-Request-ID
 //	}
 //
-// El cliente decide por `error` (código), nunca por el texto de `message`, que
-// puede cambiar o traducirse. El status HTTP siempre es coherente con
-// `success`: un fallo nunca viaja con 200.
+// The client decides by `error` (code), never by the `message` text, which
+// may change or be translated. The HTTP status is always consistent with
+// `success`: a failure never travels with 200.
 package response
 
 import "net/http"
 
-// Response es el sobre. T es el tipo de data; usa any cuando no hay.
+// Response is the envelope. T is the data type; use any when there is none.
 type Response[T any] struct {
 	Success bool   `json:"success"`
 	Message string `json:"message,omitempty"`
-	// Data se omite solo cuando es nil: una lista vacía viaja como [].
+	// Data is omitted only when nil: an empty list travels as [].
 	Data      T            `json:"data,omitzero"`
 	Error     string       `json:"error,omitempty"`
 	Fields    []FieldError `json:"fields,omitempty"`
@@ -33,15 +33,15 @@ type Response[T any] struct {
 	RequestID string       `json:"requestId,omitempty"`
 }
 
-// FieldError es un error de validación de un campo concreto. Field usa el
-// nombre JSON que conoce el cliente ("email", "address.zip").
+// FieldError is a validation error for a specific field. Field uses the
+// JSON name the client knows ("email", "address.zip").
 type FieldError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 	Rule    string `json:"rule,omitempty"` // required | email | min | max | oneof | ...
 }
 
-// Meta acompaña a los listados paginados.
+// Meta accompanies paginated listings.
 type Meta struct {
 	Page       int   `json:"page"`
 	PageSize   int   `json:"pageSize"`
@@ -49,7 +49,7 @@ type Meta struct {
 	TotalPages int   `json:"totalPages"`
 }
 
-// NewMeta calcula TotalPages.
+// NewMeta computes TotalPages.
 func NewMeta(page, pageSize int, total int64) *Meta {
 	m := &Meta{Page: page, PageSize: pageSize, Total: total}
 	if pageSize > 0 {
@@ -58,9 +58,9 @@ func NewMeta(page, pageSize int, total int64) *Meta {
 	return m
 }
 
-// Códigos estables. Son parte del contrato con los clientes: no se renombran.
-// Un proyecto añade los suyos ("bot-paused", "outside-24h-window") con
-// New(status, code, message) o e.WithCode(code).
+// Stable codes. They are part of the contract with clients: never renamed.
+// A project adds its own ("bot-paused", "outside-24h-window") with
+// New(status, code, message) or e.WithCode(code).
 const (
 	CodeBadRequest    = "bad-request"
 	CodeValidation    = "validation"
@@ -77,7 +77,7 @@ const (
 	CodeTimeout       = "timeout"
 )
 
-// CodeFor devuelve el código estable por defecto de un status HTTP.
+// CodeFor returns the default stable code for an HTTP status.
 func CodeFor(status int) string {
 	switch status {
 	case http.StatusBadRequest:
@@ -110,8 +110,8 @@ func CodeFor(status int) string {
 	}
 }
 
-// Messages son los textos por defecto de cada código. Un proyecto puede
-// cambiarlos al arrancar (p. ej. a inglés): response.Messages[CodeNotFound] = "Not found".
+// Messages are the default texts for each code. A project can change them at
+// startup (e.g. to English): response.Messages[CodeNotFound] = "Not found".
 var Messages = map[string]string{
 	CodeBadRequest:    "Petición no válida",
 	CodeValidation:    "Datos no válidos",

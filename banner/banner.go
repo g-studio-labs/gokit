@@ -1,12 +1,12 @@
-// Package banner imprime el splash de arranque de la casa: el nombre del
-// servicio en ANSI Shadow con el color de la marca, un subtítulo gris y filas
-// [+] con el entorno, la dirección, la versión y lo que cada proyecto quiera
-// añadir. Es solo decoración: los logs estructurados siguen por lg.
+// Package banner prints the house's startup splash: the service name in ANSI
+// Shadow with the brand color, a gray subtitle and [+] rows with the
+// environment, the address, the version and whatever each project wants to
+// add. It is decoration only: structured logs still go through lg.
 //
-// Es el mismo banner que ya arrancaba en varios servicios, con dos cosas
-// que a ninguno le habían puesto: el wordmark se renderiza desde la fuente
-// embebida (no hay que pegar el arte a mano) y la fila version sale sola del
-// binario (debug.ReadBuildInfo) o de -ldflags.
+// It is the same banner several services already booted with, plus two
+// things none of them had: the wordmark is rendered from the embedded font
+// (no pasting the art by hand) and the version row comes on its own from the
+// binary (debug.ReadBuildInfo) or from -ldflags.
 package banner
 
 import (
@@ -18,37 +18,37 @@ import (
 	"time"
 )
 
-// Version y Commit se pueden fijar al compilar:
+// Version and Commit can be set at build time:
 //
 //	go build -ldflags "-X github.com/g-studio-labs/gokit/banner.Version=1.4.0"
 //
-// Si quedan vacíos se leen de la info de build del módulo (vcs.revision).
+// If left empty they are read from the module's build info (vcs.revision).
 var (
 	Version string
 	Commit  string
 )
 
-// Row es una fila [+] extra del banner (p. ej. {"contrato", "/openapi.json"}).
+// Row is an extra [+] row of the banner (e.g. {"contract", "/openapi.json"}).
 type Row struct {
 	Key   string
 	Value string
 }
 
-// Options describe el banner. Solo Name es obligatorio.
+// Options describes the banner. Only Name is required.
 type Options struct {
-	Name      string // texto del wordmark, p. ej. "SANTA" (mayúsculas, A-Z 0-9)
-	Subtitle  string // línea gris bajo el wordmark, p. ej. "TRAVEL · API"
-	Accent    Color  // color del wordmark; vacío = cian
+	Name      string // wordmark text, e.g. "ACME" (uppercase, A-Z 0-9)
+	Subtitle  string // gray line under the wordmark, e.g. "STUDIO · API"
+	Accent    Color  // wordmark color; empty = cyan
 	Env       string // development | production | ...
-	Addr      string // ":8080" o "0.0.0.0:8080"
-	Health    string // ruta del health; vacío = "/health"; "-" lo oculta
-	Rows      []Row  // filas extra, después de las fijas
+	Addr      string // ":8080" or "0.0.0.0:8080"
+	Health    string // health path; empty = "/health"; "-" hides it
+	Rows      []Row  // extra rows, after the fixed ones
 	Out       io.Writer
-	NoColor   bool // fuerza salida sin ANSI (también NO_COLOR en el entorno)
+	NoColor   bool // forces output without ANSI (also NO_COLOR in the environment)
 	noVersion bool
 }
 
-// Color es una secuencia ANSI de color de primer plano.
+// Color is an ANSI foreground color sequence.
 type Color string
 
 const (
@@ -60,8 +60,8 @@ const (
 	reset  Color = "\033[0m"
 )
 
-// Hex convierte "#D32F2F" (o "D32F2F") en un color truecolor. Las terminales
-// sin truecolor caen al color más cercano. Un hex inválido devuelve cian.
+// Hex converts "#D32F2F" (or "D32F2F") into a truecolor color. Terminals
+// without truecolor fall back to the nearest color. An invalid hex returns cyan.
 func Hex(hex string) Color {
 	hex = strings.TrimPrefix(strings.TrimSpace(hex), "#")
 	if len(hex) != 6 {
@@ -74,22 +74,22 @@ func Hex(hex string) Color {
 	return Color(fmt.Sprintf("\033[38;2;%d;%d;%dm", r, g, b))
 }
 
-// Wordmark renderiza text en ANSI Shadow, con las letras pegadas como lo hace
-// figlet (fitting). Las runas que la fuente no trae se dibujan como espacio.
+// Wordmark renders text in ANSI Shadow, with letters joined the way figlet
+// does it (fitting). Runes the font lacks are drawn as a space.
 func Wordmark(text string) []string {
 	var out []string
 	for _, r := range text {
-		g, ok := glifos[r]
+		g, ok := glyphs[r]
 		if !ok {
-			g = glifos[' ']
+			g = glyphs[' ']
 		}
 		out = fit(out, g)
 	}
 	return trimRight(out)
 }
 
-// fit pega el glifo a la derecha de las filas quitando el espacio que sobra
-// entre ambos (sin solaparlos), como el layout "fitting" de figlet.
+// fit appends the glyph to the right of the rows removing the extra space
+// between them (without overlapping), like figlet's "fitting" layout.
 func fit(left, right []string) []string {
 	if len(left) == 0 {
 		return append([]string(nil), right...)
@@ -143,8 +143,8 @@ func trimRight(rows []string) []string {
 	return rows
 }
 
-// Print escribe el banner. Se llama justo antes de ListenAndServe. Sin
-// terminal (Docker, un archivo) sale sin colores.
+// Print writes the banner. Call it right before ListenAndServe. Without a
+// terminal (Docker, a file) it comes out without colors.
 func Print(o Options) {
 	out := orStdout(o.Out)
 	if !isTerminal(out) {
@@ -162,7 +162,7 @@ func isTerminal(w io.Writer) bool {
 	return err == nil && st.Mode()&os.ModeCharDevice != 0
 }
 
-// Render devuelve el banner como texto, para imprimirlo o probarlo.
+// Render returns the banner as text, to print or test it.
 func Render(o Options) string {
 	color := !o.NoColor && os.Getenv("NO_COLOR") == ""
 	paint := func(c Color, s string) string {
@@ -219,9 +219,9 @@ func Render(o Options) string {
 	return b.String()
 }
 
-// version arma "1.4.0 (a1b2c3d)" con lo que haya: las variables de -ldflags,
-// y si no, la info de build del módulo (Go la graba al compilar desde un
-// checkout de git; con -buildvcs=false no hay nada).
+// version builds "1.4.0 (a1b2c3d)" from whatever is available: the -ldflags
+// variables, or else the module's build info (Go records it when building
+// from a git checkout; with -buildvcs=false there is nothing).
 func version() string {
 	v, c := Version, Commit
 	if info, ok := debug.ReadBuildInfo(); ok {

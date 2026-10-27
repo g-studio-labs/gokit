@@ -9,9 +9,9 @@ import (
 	"github.com/g-studio-labs/gokit/response"
 )
 
-// Recover atrapa panics, los registra con stack y responde 500 con el sobre.
-// http.ErrAbortHandler se vuelve a lanzar: así aborta el proxy inverso cuando
-// el cliente corta, y no es un error nuestro.
+// Recover catches panics, logs them with the stack and responds 500 with the
+// envelope. http.ErrAbortHandler is re-panicked: that is how the reverse proxy
+// aborts when the client hangs up, and it is not our error.
 func Recover(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {

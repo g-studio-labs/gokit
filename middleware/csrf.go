@@ -7,14 +7,14 @@ import (
 	"github.com/g-studio-labs/gokit/response"
 )
 
-// CodeOriginNotAllowed es el código del sobre cuando AntiCSRF rechaza.
+// CodeOriginNotAllowed is the envelope code when AntiCSRF rejects.
 const CodeOriginNotAllowed = "origin-not-allowed"
 
-// AntiCSRF rechaza peticiones que cambian datos (todo menos GET/HEAD/OPTIONS)
-// con un Origin ajeno. Hace falta cuando la sesión va en cookie: el navegador
-// la manda sola desde cualquier sitio. Sin Origin se dejan pasar (no vienen
-// de un navegador en otro sitio: siempre lo mandan en un POST entre orígenes).
-// Los clientes no-navegador (curl, n8n) no mandan Origin y no les afecta.
+// AntiCSRF rejects data-changing requests (everything but GET/HEAD/OPTIONS)
+// with a foreign Origin. It is needed when the session travels in a cookie: the
+// browser sends it on its own from any site. Requests without Origin pass (they
+// do not come from a browser on another site: browsers always send it on a
+// cross-origin POST). Non-browser clients (curl, n8n) send no Origin and are unaffected.
 func AntiCSRF(origins []string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

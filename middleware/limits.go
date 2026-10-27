@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// MaxBody limita el cuerpo de toda petición a n bytes. response.Decode ya
-// limita los JSON; esto cubre lo demás (multipart, raw) y evita leer de más.
-// Cuando se pasa, el siguiente Read devuelve *http.MaxBytesError y
-// response.Fail lo responde como 413.
+// MaxBody limits every request body to n bytes. response.Decode already
+// limits JSON; this covers the rest (multipart, raw) and avoids overreading.
+// When exceeded, the next Read returns *http.MaxBytesError and response.Fail
+// answers it as 413.
 func MaxBody(n int64) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -21,10 +21,10 @@ func MaxBody(n int64) Middleware {
 	}
 }
 
-// Timeout pone un plazo al contexto de la petición. No corta el handler (eso
-// no se puede en Go): lo que respeta el contexto (DB, HTTP salientes) falla
-// con context.DeadlineExceeded y response.Fail lo responde como 504. Para
-// SSE o streaming, no lo apliques a esas rutas.
+// Timeout puts a deadline on the request context. It does not stop the handler
+// (that is not possible in Go): whatever honors the context (DB, outgoing HTTP)
+// fails with context.DeadlineExceeded and response.Fail answers it as 504. For
+// SSE or streaming, do not apply it to those routes.
 func Timeout(d time.Duration) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
